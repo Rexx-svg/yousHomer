@@ -20,19 +20,22 @@ end)
 --// GUI
 local gui = Instance.new("ScreenGui", player.PlayerGui)
 gui.Name = "MenuUI"
+gui.ResetOnSpawn = false
 
 local frame = Instance.new("Frame", gui)
 frame.Size = UDim2.new(0,260,0,240)
 frame.Position = UDim2.new(0.4,0,0.3,0)
 frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
 frame.Active = true
-frame.Draggable = true -- PANEL MOVIBLE
+frame.Draggable = true
 frame.BorderSizePixel = 0
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0,12)
 
 --// HEADER
 local header = Instance.new("Frame", frame)
 header.Size = UDim2.new(1,0,0,40)
 header.BackgroundColor3 = Color3.fromRGB(20,20,20)
+header.BorderSizePixel = 0
 
 local title = Instance.new("TextLabel", header)
 title.Size = UDim2.new(1,-40,1,0)
@@ -42,7 +45,7 @@ title.TextColor3 = Color3.fromRGB(255,255,255)
 title.BackgroundTransparency = 1
 title.Font = Enum.Font.GothamBold
 title.TextSize = 13
-title.TextXAlignment = Left
+title.TextXAlignment = Enum.TextXAlignment.Left
 
 local minimize = Instance.new("TextButton", header)
 minimize.Size = UDim2.new(0,30,1,0)
@@ -65,6 +68,7 @@ local function createButton(text)
 	b.TextSize = 14
 	b.BorderSizePixel = 0
 	b.Text = text
+	Instance.new("UICorner", b).CornerRadius = UDim.new(0,10)
 	table.insert(buttons,b)
 	return b
 end
@@ -74,7 +78,7 @@ local wallBtn  = createButton("WALL HACK")
 local jumpBtn  = createButton("INF JUMP")
 local shiftBtn = createButton("SHIFT LOCK")
 
---// POSICIÓN
+--// POSICIÓN AUTOMÁTICA
 local padding = 10
 local startY = 50
 
@@ -120,7 +124,7 @@ tpBtn.MouseButton1Click:Connect(function()
 	end
 end)
 
--- WALL HACK (TODO MENOS SUELO)
+-- WALL HACK (NOCLIP)
 local noclip = false
 local noclipConn
 
@@ -132,11 +136,7 @@ wallBtn.MouseButton1Click:Connect(function()
 		noclipConn = RunService.Stepped:Connect(function()
 			for _,v in pairs(workspace:GetDescendants()) do
 				if v:IsA("BasePart") then
-					if not CollectionService:HasTag(v,"Ground") then
-						v.CanCollide = false
-					else
-						v.CanCollide = true
-					end
+					v.CanCollide = false
 				end
 			end
 		end)
@@ -168,53 +168,15 @@ UIS.JumpRequest:Connect(function()
 end)
 
 ------------------------------------------------
--- SHIFT LOCK (FIJO)
+-- SHIFT LOCK
 ------------------------------------------------
-
--- ICONO FIJO
-local shiftIcon = Instance.new("ImageButton", gui)
-shiftIcon.Size = UDim2.new(0,36,0,36)
-shiftIcon.Position = UDim2.new(0.92,0,0.78,0)
-shiftIcon.BackgroundColor3 = Color3.fromRGB(30,30,30)
-shiftIcon.BorderSizePixel = 0
-shiftIcon.Image = "rbxassetid://3926305904"
-shiftIcon.ImageRectOffset = Vector2.new(4,684)
-shiftIcon.ImageRectSize = Vector2.new(36,36)
-shiftIcon.Visible = false
-
-local corner = Instance.new("UICorner", shiftIcon)
-corner.CornerRadius = UDim.new(1,0)
-
--- NO MOVIBLE
-shiftIcon.Active = false
-
 local shiftLock = false
 
--- BOTÓN DEL MENÚ
 shiftBtn.MouseButton1Click:Connect(function()
 	shiftLock = not shiftLock
 	shiftBtn.Text = shiftLock and "SHIFT LOCK: ON" or "SHIFT LOCK"
 
-	shiftIcon.Visible = shiftLock
-
-	if shiftLock then
-		UIS.MouseBehavior = Enum.MouseBehavior.LockCenter
-		shiftIcon.BackgroundColor3 = Color3.fromRGB(255,255,255)
-	else
-		UIS.MouseBehavior = Enum.MouseBehavior.Default
-		shiftIcon.BackgroundColor3 = Color3.fromRGB(30,30,30)
-	end
+	UIS.MouseBehavior = shiftLock and Enum.MouseBehavior.LockCenter or Enum.MouseBehavior.Default
 end)
 
--- TOCAR ICONO
-shiftIcon.MouseButton1Click:Connect(function()
-	shiftLock = not shiftLock
-
-	if shiftLock then
-		UIS.MouseBehavior = Enum.MouseBehavior.LockCenter
-		shiftIcon.BackgroundColor3 = Color3.fromRGB(255,255,255)
-	else
-		UIS.MouseBehavior = Enum.MouseBehavior.Default
-		shiftIcon.BackgroundColor3 = Color3.fromRGB(30,30,30)
-	end
-end)
+print("✅ Menu cargado correctamente")
