@@ -1,10 +1,15 @@
 --// SERVICIOS
-local player = game.Players.LocalPlayer
+local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local CollectionService = game:GetService("CollectionService")
+local Debris = game:GetService("Debris")
 
---// GUARDAR LOBBY
+local player = Players.LocalPlayer
+
+------------------------------------------------
+-- GUARDAR LOBBY (PRIMER SPAWN)
+------------------------------------------------
 local lobbyCFrame
 local firstSpawn = true
 
@@ -17,9 +22,13 @@ player.CharacterAdded:Connect(function(char)
 	end
 end)
 
---// GUI
-local gui = Instance.new("ScreenGui", player.PlayerGui)
+------------------------------------------------
+-- GUI
+------------------------------------------------
+local gui = Instance.new("ScreenGui")
 gui.Name = "MenuUI"
+gui.ResetOnSpawn = false
+gui.Parent = player.PlayerGui
 
 local frame = Instance.new("Frame", gui)
 frame.Size = UDim2.new(0,260,0,240)
@@ -29,10 +38,13 @@ frame.Active = true
 frame.Draggable = true
 frame.BorderSizePixel = 0
 
---// HEADER
+------------------------------------------------
+-- HEADER
+------------------------------------------------
 local header = Instance.new("Frame", frame)
 header.Size = UDim2.new(1,0,0,40)
 header.BackgroundColor3 = Color3.fromRGB(20,20,20)
+header.BorderSizePixel = 0
 
 local title = Instance.new("TextLabel", header)
 title.Size = UDim2.new(1,-40,1,0)
@@ -53,7 +65,9 @@ minimize.BackgroundTransparency = 1
 minimize.Font = Enum.Font.GothamBold
 minimize.TextSize = 20
 
---// BOTONES
+------------------------------------------------
+-- BOTONES
+------------------------------------------------
 local buttons = {}
 
 local function createButton(text)
@@ -74,7 +88,7 @@ local wallBtn  = createButton("WALL HACK")
 local jumpBtn  = createButton("INF JUMP")
 local shiftBtn = createButton("SHIFT LOCK")
 
---// POSICIÓN BOTONES
+-- POSICIÓN BOTONES
 local padding = 10
 local startY = 50
 
@@ -85,7 +99,9 @@ end
 local totalHeight = startY + (#buttons*(40+padding))
 frame.Size = UDim2.new(0,260,0,totalHeight)
 
---// MINIMIZAR
+------------------------------------------------
+-- MINIMIZAR
+------------------------------------------------
 local minimized = false
 local fullSize = frame.Size
 
@@ -119,7 +135,7 @@ tpBtn.MouseButton1Click:Connect(function()
 end)
 
 ------------------------------------------------
--- WALL HACK
+-- WALL HACK (NOCLIP)
 ------------------------------------------------
 local noclip = false
 local noclipConn
@@ -134,6 +150,8 @@ wallBtn.MouseButton1Click:Connect(function()
 				if v:IsA("BasePart") then
 					if not CollectionService:HasTag(v,"Ground") then
 						v.CanCollide = false
+					else
+						v.CanCollide = true
 					end
 				end
 			end
@@ -149,77 +167,50 @@ wallBtn.MouseButton1Click:Connect(function()
 end)
 
 ------------------------------------------------
--- MULTI JUMP SEGURO (NO MATA)
+-- INF / MULTI JUMP (ANTI-DETECCIÓN)
 ------------------------------------------------
 local infJump = false
-local jumpCooldown = false
+local canBoost = true
 
 jumpBtn.MouseButton1Click:Connect(function()
 	infJump = not infJump
-	jumpBtn.Text = infJump and "MULTI JUMP: ON" or "INF JUMP"
+	jumpBtn.Text = infJump and "INF JUMP: ON" or "INF JUMP"
 end)
 
-UIS.JumpRequest:Connect(function()
-	if not infJump or jumpCooldown then return end
+UIS.InputBegan:Connect(function(input, gpe)
+	if gpe or not infJump then return end
+	if input.KeyCode ~= Enum.KeyCode.Space then return end
 
 	local char = player.Character
-	local hum = char and char:FindFirstChildOfClass("Humanoid")
-	if not hum then return end
+	local hrp = char and char:FindFirstChild("HumanoidRootPart")
+	if not hrp or not canBoost then return end
 
-	local state = hum:GetState()
-	if state == Enum.HumanoidStateType.Freefall
-	or state == Enum.HumanoidStateType.Jumping then
+	canBoost = false
 
-		jumpCooldown = true
-		hum:ChangeState(Enum.HumanoidStateType.Jumping)
+	local bv = Instance.new("BodyVelocity")
+	bv.Velocity = Vector3.new(0,45,0) -- fuerza segura
+	bv.MaxForce = Vector3.new(0, math.huge, 0)
+	bv.Parent = hrp
 
-		task.delay(0.15, function()
-			jumpCooldown = false
-		end)
-	end
+	Debris:AddItem(bv, 0.18)
+
+	task.delay(0.2, function()
+		canBoost = true
+	end)
 end)
 
 ------------------------------------------------
 -- SHIFT LOCK
 ------------------------------------------------
-local shiftIcon = Instance.new("ImageButton", gui)
-shiftIcon.Size = UDim2.new(0,36,0,36)
-shiftIcon.Position = UDim2.new(0.92,0,0.78,0)
-shiftIcon.BackgroundColor3 = Color3.fromRGB(30,30,30)
-shiftIcon.BorderSizePixel = 0
-shiftIcon.Image = "rbxassetid://3926305904"
-shiftIcon.ImageRectOffset = Vector2.new(4,684)
-shiftIcon.ImageRectSize = Vector2.new(36,36)
-shiftIcon.Visible = false
-shiftIcon.Active = false
-
-local corner = Instance.new("UICorner", shiftIcon)
-corner.CornerRadius = UDim.new(1,0)
-
 local shiftLock = false
 
 shiftBtn.MouseButton1Click:Connect(function()
 	shiftLock = not shiftLock
 	shiftBtn.Text = shiftLock and "SHIFT LOCK: ON" or "SHIFT LOCK"
-	shiftIcon.Visible = shiftLock
 
 	if shiftLock then
 		UIS.MouseBehavior = Enum.MouseBehavior.LockCenter
-		shiftIcon.BackgroundColor3 = Color3.fromRGB(255,255,255)
 	else
 		UIS.MouseBehavior = Enum.MouseBehavior.Default
-		shiftIcon.BackgroundColor3 = Color3.fromRGB(30,30,30)
-	end
-end)
-
-shiftIcon.MouseButton1Click:Connect(function()
-	shiftLock = not shiftLock
-
-	if shiftLock then
-		UIS.MouseBehavior = Enum.MouseBehavior.LockCenter
-		shiftIcon.BackgroundColor3 = Color3.fromRGB(255,255,255)
-	else
-		UIS.MouseBehavior = Enum.MouseBehavior.Default
-		shiftIcon.BackgroundColor3 = Color3.fromRGB(30,30,30)
 	end
 end)
