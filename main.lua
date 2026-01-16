@@ -1,112 +1,103 @@
---// YOU VS HOMER - FULL MENU WITH PERSISTENT INF JUMP
 
---// SERVICIOS
+--// You vs Homer - RexHub Style Panel + 3 botones (TP, INF JUMP, SPEED decorativo)
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
-local CollectionService = game:GetService("CollectionService")
-
 local player = Players.LocalPlayer
 
 --// GUARDAR LOBBY
 local lobbyCFrame
 local firstSpawn = true
-
-local function onCharacterAdded(char)
+player.CharacterAdded:Connect(function(char)
 	task.wait(1)
 	local hrp = char:WaitForChild("HumanoidRootPart")
 	if firstSpawn then
 		lobbyCFrame = hrp.CFrame
 		firstSpawn = false
 	end
-end
-
-player.CharacterAdded:Connect(onCharacterAdded)
-if player.Character then
-	onCharacterAdded(player.Character)
-end
+end)
 
 --// GUI
 local gui = Instance.new("ScreenGui", player.PlayerGui)
-gui.Name = "MenuUI"
+gui.Name = "RexHubUI"
 gui.ResetOnSpawn = false
 
+-- PANEL
 local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0,260,0,240)
-frame.Position = UDim2.new(0.4,0,0.3,0)
+frame.Position = UDim2.fromScale(0.35,0.2)
+frame.Size = UDim2.fromScale(0.26,0) -- tamaño medio, ancho ajustado
+frame.AutomaticSize = Enum.AutomaticSize.Y
 frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
+frame.BorderSizePixel = 0
 frame.Active = true
 frame.Draggable = true
-frame.BorderSizePixel = 0
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0,14)
 
---// HEADER
+-- HEADER
 local header = Instance.new("Frame", frame)
-header.Size = UDim2.new(1,0,0,40)
-header.BackgroundColor3 = Color3.fromRGB(20,20,20)
+header.Size = UDim2.new(1,0,0,34)
+header.BackgroundColor3 = Color3.fromRGB(240,240,240)
+header.BorderSizePixel = 0
+Instance.new("UICorner", header).CornerRadius = UDim.new(0,12)
 
 local title = Instance.new("TextLabel", header)
 title.Size = UDim2.new(1,-40,1,0)
 title.Position = UDim2.new(0,10,0,0)
-title.Text = "you vs homer V1.0"
-title.TextColor3 = Color3.fromRGB(255,255,255)
 title.BackgroundTransparency = 1
+title.Text = "You vs Homer Panel"
 title.Font = Enum.Font.GothamBold
-title.TextSize = 13
+title.TextSize = 18
+title.TextColor3 = Color3.fromRGB(0,0,0)
 title.TextXAlignment = Enum.TextXAlignment.Left
 
-local minimize = Instance.new("TextButton", header)
-minimize.Size = UDim2.new(0,30,1,0)
-minimize.Position = UDim2.new(1,-30,0,0)
-minimize.Text = "-"
-minimize.TextColor3 = Color3.fromRGB(255,255,255)
-minimize.BackgroundTransparency = 1
-minimize.Font = Enum.Font.GothamBold
-minimize.TextSize = 20
+local toggleBtn = Instance.new("TextButton", header)
+toggleBtn.Size = UDim2.new(0,26,0,26)
+toggleBtn.Position = UDim2.new(1,-30,0.5,-13)
+toggleBtn.Text = "-"
+toggleBtn.Font = Enum.Font.GothamBold
+toggleBtn.TextSize = 22
+toggleBtn.BackgroundColor3 = Color3.fromRGB(220,220,220)
+toggleBtn.TextColor3 = Color3.fromRGB(0,0,0)
+toggleBtn.BorderSizePixel = 0
+Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(1,0)
 
---// BOTONES
-local buttons = {}
-local function createButton(text)
-	local b = Instance.new("TextButton", frame)
-	b.Size = UDim2.new(0,200,0,40)
-	b.BackgroundColor3 = Color3.fromRGB(40,40,40)
-	b.TextColor3 = Color3.fromRGB(255,255,255)
-	b.Font = Enum.Font.GothamBold
-	b.TextSize = 14
-	b.BorderSizePixel = 0
-	b.Text = text
-	table.insert(buttons,b)
-	return b
+-- CONTENEDOR
+local container = Instance.new("Frame", frame)
+container.Size = UDim2.new(1,-16,0,0)
+container.Position = UDim2.new(0,8,0,42)
+container.AutomaticSize = Enum.AutomaticSize.Y
+container.BackgroundTransparency = 1
+
+local layout = Instance.new("UIListLayout", container)
+layout.Padding = UDim.new(0,8)
+
+-- FUNCION PARA BOTONES
+local function createButton(text, sizeY)
+	local btn = Instance.new("TextButton", container)
+	btn.Size = UDim2.new(1,0,0,sizeY or 48)
+	btn.BackgroundColor3 = Color3.fromRGB(35,35,35)
+	btn.Text = text
+	btn.Font = Enum.Font.GothamBold
+	btn.TextSize = 20
+	btn.TextColor3 = Color3.new(1,1,1)
+	btn.BorderSizePixel = 0
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0,12)
+	return btn
 end
 
-local tpBtn    = createButton("TP SALVO")
-local wallBtn  = createButton("WALL HACK")
-local jumpBtn  = createButton("INF JUMP")
-local shiftBtn = createButton("SHIFT LOCK")
+-- BOTONES
+local tpBtn = createButton("TP LOBBY")
+local infJumpBtn = createButton("INF JUMP")
+local speedBtn = createButton("SPEED")
 
---// POSICIÓN DE BOTONES
-local padding = 10
-local startY = 50
-for i,btn in ipairs(buttons) do
-	btn.Position = UDim2.new(0,30,0,startY + ((i-1)*(40+padding)))
-end
-local totalHeight = startY + (#buttons*(40+padding))
-frame.Size = UDim2.new(0,260,0,totalHeight)
-
---// MINIMIZAR
+-- MINIMIZAR
 local minimized = false
-local fullSize = frame.Size
-minimize.MouseButton1Click:Connect(function()
+toggleBtn.MouseButton1Click:Connect(function()
 	minimized = not minimized
-	for _,b in pairs(buttons) do
-		b.Visible = not minimized
-	end
-	frame.Size = minimized and UDim2.new(0,260,0,40) or fullSize
-	minimize.Text = minimized and "+" or "-"
+	container.Visible = not minimized
+	toggleBtn.Text = minimized and "+" or "-"
 end)
-
-------------------------------------------------
--- FUNCIONES
-------------------------------------------------
 
 -- TP LOBBY
 tpBtn.MouseButton1Click:Connect(function()
@@ -117,64 +108,7 @@ tpBtn.MouseButton1Click:Connect(function()
 	end
 end)
 
--- WALL HACK (TODO MENOS SUELO)
-local noclip = false
-local noclipConn
-wallBtn.MouseButton1Click:Connect(function()
-	noclip = not noclip
-	wallBtn.Text = noclip and "WALL HACK: ON" or "WALL HACK"
-	if noclip then
-		noclipConn = RunService.Stepped:Connect(function()
-			for _,v in pairs(workspace:GetDescendants()) do
-				if v:IsA("BasePart") then
-					if not CollectionService:HasTag(v,"Ground") then
-						v.CanCollide = false
-					else
-						v.CanCollide = true
-					end
-				end
-			end
-		end)
-	else
-		if noclipConn then noclipConn:Disconnect() end
-		for _,v in pairs(workspace:GetDescendants()) do
-			if v:IsA("BasePart") then
-				v.CanCollide = true
-			end
-		end
-	end
-end)
-
--- SHIFT LOCK
-local shiftIcon = Instance.new("ImageButton", gui)
-shiftIcon.Size = UDim2.new(0,36,0,36)
-shiftIcon.Position = UDim2.new(0.92,0,0.78,0)
-shiftIcon.BackgroundColor3 = Color3.fromRGB(30,30,30)
-shiftIcon.BorderSizePixel = 0
-shiftIcon.Image = "rbxassetid://3926305904"
-shiftIcon.ImageRectOffset = Vector2.new(4,684)
-shiftIcon.ImageRectSize = Vector2.new(36,36)
-shiftIcon.Visible = false
-Instance.new("UICorner", shiftIcon).CornerRadius = UDim.new(1,0)
-shiftIcon.Active = false
-
-local shiftLock = false
-shiftBtn.MouseButton1Click:Connect(function()
-	shiftLock = not shiftLock
-	shiftBtn.Text = shiftLock and "SHIFT LOCK: ON" or "SHIFT LOCK"
-	shiftIcon.Visible = shiftLock
-	UIS.MouseBehavior = shiftLock and Enum.MouseBehavior.LockCenter or Enum.MouseBehavior.Default
-	shiftIcon.BackgroundColor3 = shiftLock and Color3.fromRGB(255,255,255) or Color3.fromRGB(30,30,30)
-end)
-shiftIcon.MouseButton1Click:Connect(function()
-	shiftLock = not shiftLock
-	UIS.MouseBehavior = shiftLock and Enum.MouseBehavior.LockCenter or Enum.MouseBehavior.Default
-	shiftIcon.BackgroundColor3 = shiftLock and Color3.fromRGB(255,255,255) or Color3.fromRGB(30,30,30)
-end)
-
-------------------------------------------------
--- INF JUMP @rznnq UI
-------------------------------------------------
+-- INF JUMP @rznnq
 local infinityJumpEnabled = false
 local jumpForce = 50
 local clampFallSpeed = 80
@@ -199,14 +133,12 @@ UIS.JumpRequest:Connect(function()
 	end
 end)
 
-jumpBtn.MouseButton1Click:Connect(function()
+infJumpBtn.MouseButton1Click:Connect(function()
 	infinityJumpEnabled = not infinityJumpEnabled
-	jumpBtn.Text = infinityJumpEnabled and "INF JUMP: ON" or "INF JUMP"
+	infJumpBtn.Text = infinityJumpEnabled and "INF JUMP: ON" or "INF JUMP"
 end)
 
-------------------------------------------------
 -- HACER EL MENU PERSISTENTE AL MORIR
-------------------------------------------------
 local function persistMenu()
 	player.CharacterAdded:Connect(function(char)
 		task.wait(0.5)
@@ -215,4 +147,4 @@ local function persistMenu()
 end
 persistMenu()
 
-print("✅ Menu completo con INF JUMP persistente listo")
+print("✅ You vs Homer con panel RexHub + 3 botones listo")
