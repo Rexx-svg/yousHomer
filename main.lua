@@ -20,7 +20,6 @@ end)
 --// GUI
 local gui = Instance.new("ScreenGui", player.PlayerGui)
 gui.Name = "MenuUI"
-gui.ResetOnSpawn = false
 
 local frame = Instance.new("Frame", gui)
 frame.Size = UDim2.new(0,260,0,240)
@@ -34,7 +33,6 @@ frame.BorderSizePixel = 0
 local header = Instance.new("Frame", frame)
 header.Size = UDim2.new(1,0,0,40)
 header.BackgroundColor3 = Color3.fromRGB(20,20,20)
-header.BorderSizePixel = 0
 
 local title = Instance.new("TextLabel", header)
 title.Size = UDim2.new(1,-40,1,0)
@@ -76,7 +74,7 @@ local wallBtn  = createButton("WALL HACK")
 local jumpBtn  = createButton("INF JUMP")
 local shiftBtn = createButton("SHIFT LOCK")
 
---// POSICIÓN
+--// POSICIÓN BOTONES
 local padding = 10
 local startY = 50
 
@@ -110,10 +108,8 @@ minimize.MouseButton1Click:Connect(function()
 end)
 
 ------------------------------------------------
--- FUNCIONES
-------------------------------------------------
-
 -- TP LOBBY
+------------------------------------------------
 tpBtn.MouseButton1Click:Connect(function()
 	local char = player.Character
 	local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -122,7 +118,9 @@ tpBtn.MouseButton1Click:Connect(function()
 	end
 end)
 
--- WALL HACK (NOCLIP)
+------------------------------------------------
+-- WALL HACK
+------------------------------------------------
 local noclip = false
 local noclipConn
 
@@ -136,8 +134,6 @@ wallBtn.MouseButton1Click:Connect(function()
 				if v:IsA("BasePart") then
 					if not CollectionService:HasTag(v,"Ground") then
 						v.CanCollide = false
-					else
-						v.CanCollide = true
 					end
 				end
 			end
@@ -153,37 +149,39 @@ wallBtn.MouseButton1Click:Connect(function()
 end)
 
 ------------------------------------------------
--- INF JUMP (FIX ANTI-CHEAT)
+-- MULTI JUMP SEGURO (NO MATA)
 ------------------------------------------------
-
 local infJump = false
+local jumpCooldown = false
 
 jumpBtn.MouseButton1Click:Connect(function()
 	infJump = not infJump
-	jumpBtn.Text = infJump and "INF JUMP: ON" or "INF JUMP"
+	jumpBtn.Text = infJump and "MULTI JUMP: ON" or "INF JUMP"
 end)
 
 UIS.JumpRequest:Connect(function()
-	if infJump then
-		local char = player.Character
-		local hum = char and char:FindFirstChildOfClass("Humanoid")
-		local hrp = char and char:FindFirstChild("HumanoidRootPart")
+	if not infJump or jumpCooldown then return end
 
-		if hum and hrp then
-			-- impulso limpio, no mata
-			hrp.Velocity = Vector3.new(
-				hrp.Velocity.X,
-				50,
-				hrp.Velocity.Z
-			)
-		end
+	local char = player.Character
+	local hum = char and char:FindFirstChildOfClass("Humanoid")
+	if not hum then return end
+
+	local state = hum:GetState()
+	if state == Enum.HumanoidStateType.Freefall
+	or state == Enum.HumanoidStateType.Jumping then
+
+		jumpCooldown = true
+		hum:ChangeState(Enum.HumanoidStateType.Jumping)
+
+		task.delay(0.15, function()
+			jumpCooldown = false
+		end)
 	end
 end)
 
 ------------------------------------------------
 -- SHIFT LOCK
 ------------------------------------------------
-
 local shiftIcon = Instance.new("ImageButton", gui)
 shiftIcon.Size = UDim2.new(0,36,0,36)
 shiftIcon.Position = UDim2.new(0.92,0,0.78,0)
@@ -194,14 +192,15 @@ shiftIcon.ImageRectOffset = Vector2.new(4,684)
 shiftIcon.ImageRectSize = Vector2.new(36,36)
 shiftIcon.Visible = false
 shiftIcon.Active = false
-Instance.new("UICorner", shiftIcon).CornerRadius = UDim.new(1,0)
+
+local corner = Instance.new("UICorner", shiftIcon)
+corner.CornerRadius = UDim.new(1,0)
 
 local shiftLock = false
 
 shiftBtn.MouseButton1Click:Connect(function()
 	shiftLock = not shiftLock
 	shiftBtn.Text = shiftLock and "SHIFT LOCK: ON" or "SHIFT LOCK"
-
 	shiftIcon.Visible = shiftLock
 
 	if shiftLock then
@@ -224,5 +223,3 @@ shiftIcon.MouseButton1Click:Connect(function()
 		shiftIcon.BackgroundColor3 = Color3.fromRGB(30,30,30)
 	end
 end)
-
-print("✅ Script cargado | INF JUMP FIX | Menu estable")
