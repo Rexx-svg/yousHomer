@@ -1,11 +1,10 @@
 --// HAROLD TOP 😹
---// Full GUI + Sources (TP Lobby, Speed, Wallhop, Wallhack)
+--// UI + 4 BOTONES (TP LOBBY, SPEED, WALL HOP, ESP)
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
+local UIS = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
-
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
@@ -17,8 +16,8 @@ gui.Name = "HAROLD_TOP"
 gui.ResetOnSpawn = false
 
 local main = Instance.new("Frame", gui)
-main.Size = UDim2.new(0, 210, 0, 220)
-main.Position = UDim2.new(0.5, -105, 0.5, -110)
+main.Size = UDim2.new(0, 210, 0, 260)
+main.Position = UDim2.new(0.5, -105, 0.5, -130)
 main.BackgroundColor3 = Color3.fromRGB(18,18,18)
 main.BorderSizePixel = 0
 main.Active = true
@@ -59,41 +58,34 @@ local function button(txt, y, w)
 end
 
 -------------------------------------------------
--- BUTTONS
+-- BOTONES
 -------------------------------------------------
 local TPLobbyBtn = button("TP LOBBY", 45)
-local SpeedBtn  = button("SPEED", 85)
-local WallhopBtn = button("WALLHOP", 125)
-local WallhackBtn = button("WALLHACK", 165)
+local SpeedBtn   = button("SPEED", 85)
+local WallHopBtn = button("WALL HOP", 125)
+local ESPBtn     = button("ESP", 165)
 
 -------------------------------------------------
 -- STATES
 -------------------------------------------------
-local tpOn, speedOn, wallhopOn, wallhackOn = false,false,false,false
+local tpOn, speedOn, wallHopOn, espOn = false,false,false,false
 local normalSpeed = 16
-local respawnCF = nil
+local lobbyPos = nil
+local espObjects = {}
+
+-- Guardar posición al spawn
+lobbyPos = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character.HumanoidRootPart.CFrame
 
 -------------------------------------------------
 -- TP LOBBY
 -------------------------------------------------
-LocalPlayer.CharacterAdded:Connect(function(char)
-	if respawnCF then
-		task.wait(0.5)
-		local hrp = char:WaitForChild("HumanoidRootPart")
-		hrp.CFrame = respawnCF
-	end
-end)
-
 TPLobbyBtn.MouseButton1Click:Connect(function()
 	sound()
-	local char = LocalPlayer.Character
-	if not char then return end
-	local hrp = char:FindFirstChild("HumanoidRootPart")
-	if not hrp then return end
-	respawnCF = hrp.CFrame
-	tpOn = true
-	TPLobbyBtn.Text = "TP LOBBY [ON]"
-	TPLobbyBtn.BackgroundColor3 = Color3.fromRGB(0,120,255)
+	tpOn = not tpOn
+	TPLobbyBtn.Text = "TP LOBBY ["..(tpOn and "ON" or "OFF").."]"
+	if tpOn and lobbyPos and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+		LocalPlayer.Character.HumanoidRootPart.CFrame = lobbyPos
+	end
 end)
 
 -------------------------------------------------
@@ -106,59 +98,84 @@ SpeedBtn.MouseButton1Click:Connect(function()
 	speedOn = not speedOn
 	hum.WalkSpeed = speedOn and 38.5 or normalSpeed
 	SpeedBtn.Text = "SPEED ["..(speedOn and "ON" or "OFF").."]"
-	SpeedBtn.BackgroundColor3 = speedOn and Color3.fromRGB(0,120,255) or Color3.fromRGB(40,0,0)
 end)
 
 -------------------------------------------------
--- WALLHOP (Inf Jump)
+-- WALL HOP (INFINITE JUMP)
 -------------------------------------------------
 local jumpForce = 50
 local clampFallSpeed = 80
-WallhopBtn.MouseButton1Click:Connect(function()
+
+WallHopBtn.MouseButton1Click:Connect(function()
 	sound()
-	wallhopOn = not wallhopOn
-	WallhopBtn.Text = "WALLHOP ["..(wallhopOn and "ON" or "OFF").."]"
-	WallhopBtn.BackgroundColor3 = wallhopOn and Color3.fromRGB(0,120,255) or Color3.fromRGB(40,0,0)
+	wallHopOn = not wallHopOn
+	WallHopBtn.Text = "WALL HOP ["..(wallHopOn and "ON" or "OFF").."]"
 end)
 
 RunService.Heartbeat:Connect(function()
-	if not wallhopOn then return end
 	local char = LocalPlayer.Character
 	if not char then return end
 	local hrp = char:FindFirstChild("HumanoidRootPart")
-	if hrp and hrp.Velocity.Y < -clampFallSpeed then
+	local hum = char:FindFirstChildOfClass("Humanoid")
+	if not hrp or not hum then return end
+
+	-- WALL HOP
+	if wallHopOn and hrp.Velocity.Y < -clampFallSpeed then
 		hrp.Velocity = Vector3.new(hrp.Velocity.X, -clampFallSpeed, hrp.Velocity.Z)
 	end
 end)
 
-UserInputService.JumpRequest:Connect(function()
-	if not wallhopOn then return end
-	local char = LocalPlayer.Character
-	if not char then return end
-	local hrp = char:FindFirstChild("HumanoidRootPart")
-	if hrp then
-		hrp.Velocity = Vector3.new(hrp.Velocity.X, jumpForce, hrp.Velocity.Z)
+UIS.JumpRequest:Connect(function()
+	if wallHopOn then
+		local char = LocalPlayer.Character
+		if not char then return end
+		local hrp = char:FindFirstChild("HumanoidRootPart")
+		if hrp then
+			hrp.Velocity = Vector3.new(hrp.Velocity.X, jumpForce, hrp.Velocity.Z)
+		end
 	end
 end)
 
 -------------------------------------------------
--- WALLHACK (Noclip)
+-- ESP
 -------------------------------------------------
-WallhackBtn.MouseButton1Click:Connect(function()
-	sound()
-	wallhackOn = not wallhackOn
-	WallhackBtn.Text = "WALLHACK ["..(wallhackOn and "ON" or "OFF").."]"
-	WallhackBtn.BackgroundColor3 = wallhackOn and Color3.fromRGB(0,120,255) or Color3.fromRGB(40,0,0)
-end)
+local function addESP(plr)
+	if plr == LocalPlayer then return end
+	local c = plr.Character
+	if not c then return end
+	local hrp = c:FindFirstChild("HumanoidRootPart")
+	local head = c:FindFirstChild("Head")
+	if not (hrp and head) then return end
 
-RunService.Heartbeat:Connect(function()
-	if wallhackOn then
-		local char = LocalPlayer.Character
-		if not char then return end
-		for _,part in pairs(char:GetDescendants()) do
-			if part:IsA("BasePart") then
-				part.CanCollide = false
-			end
+	local box = Instance.new("BoxHandleAdornment", hrp)
+	box.Size = Vector3.new(4,6,2)
+	box.AlwaysOnTop = true
+	box.Transparency = 0.6
+	box.Color3 = Color3.fromRGB(255,0,255)
+
+	local bb = Instance.new("BillboardGui", head)
+	bb.Size = UDim2.new(0,200,0,40)
+	bb.AlwaysOnTop = true
+	local tl = Instance.new("TextLabel", bb)
+	tl.Size = UDim2.new(1,0,1,0)
+	tl.BackgroundTransparency = 1
+	tl.Text = plr.Name
+	tl.TextColor3 = Color3.fromRGB(255,0,255)
+	tl.TextScaled = true
+
+	espObjects[plr] = {box,bb}
+end
+
+ESPBtn.MouseButton1Click:Connect(function()
+	sound()
+	espOn = not espOn
+	ESPBtn.Text = "ESP ["..(espOn and "ON" or "OFF").."]"
+	if espOn then
+		for _,p in pairs(Players:GetPlayers()) do addESP(p) end
+	else
+		for _,t in pairs(espObjects) do
+			for _,o in pairs(t) do o:Destroy() end
 		end
+		espObjects = {}
 	end
 end)
