@@ -90,30 +90,30 @@ local espObjects = {}
 lobbyPos = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character.HumanoidRootPart.CFrame
 
 -------------------------------------------------
--- TP SAFE
+-- TP SAFE (solo Bart)
 -------------------------------------------------
+local lastPos = nil
 TPSafeBtn.MouseButton1Click:Connect(function()
 	sound()
 	tpSafeOn = not tpSafeOn
 	TPSafeBtn.Text = "TP SAFE ["..(tpSafeOn and "ON" or "OFF").."]"
-	-- Buscar piso verde con borde amarillo
-	local greenFloor
-	for _, obj in pairs(Workspace:GetDescendants()) do
-		if obj:IsA("BasePart") and obj.Name:lower():find("green") then
-			-- verificar que tenga borde amarillo (ejemplo: amarillo pequeño debajo)
-			local below = obj.Position - Vector3.new(0, obj.Size.Y/2 + 0.1, 0)
-			local ray = Ray.new(obj.Position, Vector3.new(0,-obj.Size.Y,0))
-			-- solo usamos el primer verde
-			greenFloor = obj
-			break
+
+	local char = LocalPlayer.Character
+	if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+	local hrp = char.HumanoidRootPart
+
+	if tpSafeOn then
+		if LocalPlayer.Team and LocalPlayer.Team.Name == "Bart" then
+			lastPos = hrp.CFrame
+			if lobbyPos then
+				hrp.CFrame = lobbyPos
+			end
 		end
-	end
-	if greenFloor and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-		LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(
-			greenFloor.Position.X,
-			greenFloor.Position.Y + greenFloor.Size.Y/2 + 1, -- encima del "palito amarillo"
-			greenFloor.Position.Z
-		)
+	else
+		if lastPos then
+			hrp.CFrame = lastPos
+			lastPos = nil
+		end
 	end
 end)
 
@@ -177,7 +177,7 @@ UIS.JumpRequest:Connect(function()
 end)
 
 -------------------------------------------------
--- ESP (You vs Homer FIXED)
+-- ESP (solo si hay equipo)
 -------------------------------------------------
 local function addESP(plr)
 	if plr == LocalPlayer then return end
@@ -185,15 +185,13 @@ local function addESP(plr)
 	if not char then return end
 	local hrp = char:FindFirstChild("HumanoidRootPart")
 	if not hrp then return end
-
-	-- Solo activar si el jugador está en un equipo
 	if not plr.Team then return end
 
 	local color
 	if plr.Team.Name == "Homer" then
-		color = Color3.fromRGB(255,0,0) -- rojo para Homer
+		color = Color3.fromRGB(255,0,0)
 	elseif plr.Team.Name == "Bart" then
-		color = Color3.fromRGB(0,0,255) -- azul para Bart
+		color = Color3.fromRGB(0,0,255)
 	end
 
 	local box = Instance.new("BoxHandleAdornment")
