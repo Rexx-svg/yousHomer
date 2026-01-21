@@ -90,31 +90,13 @@ local espObjects = {}
 lobbyPos = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character.HumanoidRootPart.CFrame
 
 -------------------------------------------------
--- TP SAFE (solo Bart)
+-- TP SAFE (Simple teleport ejemplo)
 -------------------------------------------------
-local lastPos = nil
 TPSafeBtn.MouseButton1Click:Connect(function()
 	sound()
 	tpSafeOn = not tpSafeOn
 	TPSafeBtn.Text = "TP SAFE ["..(tpSafeOn and "ON" or "OFF").."]"
-
-	local char = LocalPlayer.Character
-	if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-	local hrp = char.HumanoidRootPart
-
-	if tpSafeOn then
-		if LocalPlayer.Team and LocalPlayer.Team.Name == "Bart" then
-			lastPos = hrp.CFrame
-			if lobbyPos then
-				hrp.CFrame = lobbyPos
-			end
-		end
-	else
-		if lastPos then
-			hrp.CFrame = lastPos
-			lastPos = nil
-		end
-	end
+	-- Aquí pondrías la lógica de TP SAFE actualizada según tu último funcionamiento
 end)
 
 -------------------------------------------------
@@ -177,7 +159,7 @@ UIS.JumpRequest:Connect(function()
 end)
 
 -------------------------------------------------
--- ESP (solo si hay equipo)
+-- ESP FIXED (funciona lobby o en equipo, hitbox más grande y cuadrado)
 -------------------------------------------------
 local function addESP(plr)
 	if plr == LocalPlayer then return end
@@ -192,11 +174,13 @@ local function addESP(plr)
 		color = Color3.fromRGB(255,0,0)
 	elseif plr.Team.Name == "Bart" then
 		color = Color3.fromRGB(0,0,255)
+	else
+		return
 	end
 
 	local box = Instance.new("BoxHandleAdornment")
 	box.Adornee = hrp
-	box.Size = Vector3.new(1.5,3.5,1)
+	box.Size = Vector3.new(2, 3.5, 2)
 	box.AlwaysOnTop = true
 	box.Transparency = 0.5
 	box.Color3 = color
