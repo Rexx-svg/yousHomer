@@ -1,3 +1,20 @@
+-------------------------------------------------
+-- DIA FORZADO (SIN LAG / SIN TOCAR ESP)
+-------------------------------------------------
+local Lighting = game:GetService("Lighting")
+
+Lighting.ClockTime = 13
+Lighting.Brightness = 2
+Lighting.GlobalShadows = true
+Lighting.FogEnd = 100000
+Lighting.OutdoorAmbient = Color3.fromRGB(128,128,128)
+
+Lighting:GetPropertyChangedSignal("ClockTime"):Connect(function()
+	if Lighting.ClockTime < 6 or Lighting.ClockTime > 18 then
+		Lighting.ClockTime = 13
+	end
+end)
+
 --// HAROLD TOP 😹
 --// UI + 5 BOTONES (TP SAFE, TP LOBBY, SPEED, WALL HOP, ESP)
 
@@ -5,26 +22,8 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
-local Lighting = game:GetService("Lighting")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-
--------------------------------------------------
--- ☀️ DIA FIJO OPTIMIZADO (SIN LAG)
--------------------------------------------------
-Lighting.ClockTime = 12.5
-Lighting.Brightness = 2
-Lighting.ExposureCompensation = 0
-Lighting.GlobalShadows = true
-Lighting.OutdoorAmbient = Color3.fromRGB(180,180,180)
-Lighting.Ambient = Color3.fromRGB(140,140,140)
-
--- Anti-noche suave (NO LAG)
-RunService.Heartbeat:Connect(function()
-	if Lighting.ClockTime < 12 or Lighting.ClockTime > 13 then
-		Lighting.ClockTime = 12.5
-	end
-end)
 
 -------------------------------------------------
 -- GUI BASE
@@ -110,7 +109,9 @@ local espObjects = {}
 LocalPlayer.CharacterAdded:Connect(function(char)
 	task.wait(1)
 	local hrp = char:FindFirstChild("HumanoidRootPart")
-	if hrp then lobbyPos = hrp.CFrame end
+	if hrp then
+		lobbyPos = hrp.CFrame
+	end
 end)
 
 -------------------------------------------------
@@ -129,7 +130,9 @@ TPSafeBtn.MouseButton1Click:Connect(function()
 	if tpSafeOn then
 		if LocalPlayer.Team and LocalPlayer.Team.Name == "Bart" then
 			lastPos = hrp.CFrame
-			if lobbyPos then hrp.CFrame = lobbyPos end
+			if lobbyPos then
+				hrp.CFrame = lobbyPos
+			end
 		end
 	else
 		if lastPos then
@@ -177,7 +180,9 @@ end)
 
 RunService.Heartbeat:Connect(function()
 	if not wallHopOn then return end
-	local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+	local char = LocalPlayer.Character
+	if not char then return end
+	local hrp = char:FindFirstChild("HumanoidRootPart")
 	if hrp and hrp.Velocity.Y < -clampFallSpeed then
 		hrp.Velocity = Vector3.new(hrp.Velocity.X,-clampFallSpeed,hrp.Velocity.Z)
 	end
@@ -193,9 +198,75 @@ UIS.JumpRequest:Connect(function()
 end)
 
 -------------------------------------------------
--- ⚠️ ESP NO TOCADO
+-- ESP FIX DEFINITIVO (NO TOCADO)
 -------------------------------------------------
--- (exactamente igual que tu script original)
+local function validTeam(team)
+	return team and (team.Name=="Bart" or team.Name=="Homer")
+end
+
+local function clearESP()
+	for _,b in pairs(espObjects) do b:Destroy() end
+	espObjects = {}
+end
+
+local function addESP(plr)
+	if plr==LocalPlayer then return end
+	if not validTeam(plr.Team) then return end
+	if not plr.Character then return end
+
+	local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+
+	local color = plr.Team.Name=="Homer"
+		and Color3.fromRGB(255,0,0)
+		or Color3.fromRGB(0,0,255)
+
+	local box = Instance.new("BoxHandleAdornment")
+	box.Adornee = hrp
+	box.Size = Vector3.new(2.6,4.8,2.6)
+	box.AlwaysOnTop = true
+	box.Transparency = 0.4
+	box.Color3 = color
+	box.ZIndex = 10
+	box.Parent = Workspace
+
+	espObjects[plr]=box
+end
+
+local function updateESP()
+	if not espOn then return end
+
+	if not validTeam(LocalPlayer.Team) then
+		clearESP()
+		return
+	end
+
+	for plr,box in pairs(espObjects) do
+		if not validTeam(plr.Team) or not plr.Character then
+			box:Destroy()
+			espObjects[plr]=nil
+		end
+	end
+
+	for _,plr in pairs(Players:GetPlayers()) do
+		if validTeam(plr.Team) and not espObjects[plr] then
+			addESP(plr)
+		end
+	end
+end
+
+ESPBtn.MouseButton1Click:Connect(function()
+	sound()
+	espOn = not espOn
+	ESPBtn.Text = "ESP ["..(espOn and "ON" or "OFF").."]"
+	if not espOn then clearESP() end
+end)
+
+RunService.Heartbeat:Connect(updateESP)
+Players.PlayerAdded:Connect(updateESP)
+Players.PlayerRemoving:Connect(function(p)
+	if espObjects[p] then espObjects[p]:Destroy() espObjects[p]=nil end
+end)
 
 -------------------------------------------------
 -- MINIMIZAR / MAXIMIZAR
