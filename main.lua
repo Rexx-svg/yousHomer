@@ -5,7 +5,6 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
-local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
@@ -27,11 +26,39 @@ Instance.new("UICorner", main).CornerRadius = UDim.new(0,14)
 
 local title = Instance.new("TextLabel", main)
 title.Size = UDim2.new(1,0,0,35)
+title.Position = UDim2.new(0,0,0,0)
 title.BackgroundTransparency = 1
 title.Text = "😹 HAROLD TOP"
 title.Font = Enum.Font.GothamBold
 title.TextSize = 14
 title.TextColor3 = Color3.fromRGB(255,80,80)
+
+-------------------------------------------------
+-- MINIMIZADOR
+-------------------------------------------------
+local minimizeBtn = Instance.new("TextButton", main)
+minimizeBtn.Size = UDim2.new(0,30,0,30)
+minimizeBtn.Position = UDim2.new(1,-35,0,2)
+minimizeBtn.BackgroundColor3 = Color3.fromRGB(0,0,0)
+minimizeBtn.Text = "-"
+minimizeBtn.TextColor3 = Color3.new(1,1,1)
+minimizeBtn.Font = Enum.Font.GothamBold
+minimizeBtn.TextSize = 16
+Instance.new("UICorner", minimizeBtn).CornerRadius = UDim.new(0,15)
+
+local minimized = false
+local buttons = {}
+
+local function toggleMenu()
+	minimized = not minimized
+	for _, b in pairs(buttons) do
+		b.Visible = not minimized
+	end
+	main.Size = minimized and UDim2.new(0, 50, 0, 50) or UDim2.new(0, 210, 0, 260)
+	minimizeBtn.Text = minimized and "+" or "-"
+end
+
+minimizeBtn.MouseButton1Click:Connect(toggleMenu)
 
 -------------------------------------------------
 -- CLICK SOUND
@@ -55,6 +82,7 @@ local function button(txt, y, w)
 	b.TextSize = 12
 	b.BorderSizePixel = 0
 	Instance.new("UICorner", b).CornerRadius = UDim.new(0,10)
+	table.insert(buttons,b)
 	return b
 end
 
@@ -85,7 +113,21 @@ TPSafeBtn.MouseButton1Click:Connect(function()
 	sound()
 	tpSafeOn = not tpSafeOn
 	TPSafeBtn.Text = "TP SAFE ["..(tpSafeOn and "ON" or "OFF").."]"
-	-- Source para teletransportar al verde se añadirá aquí
+
+	if tpSafeOn and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+		for _, part in pairs(Workspace:GetDescendants()) do
+			if part:IsA("BasePart") then
+				if part.Color == Color3.fromRGB(0,255,0) then -- piso verde
+					local ray = Ray.new(part.Position, Vector3.new(0,-5,0))
+					local hit, hitPos = Workspace:FindPartOnRayWithIgnoreList(ray, {LocalPlayer.Character})
+					if hit and hit.Color == Color3.fromRGB(255,255,0) then -- borde amarillo debajo
+						LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(hit.Position + Vector3.new(0, 3, 0))
+						break
+					end
+				end
+			end
+		end
+	end
 end)
 
 -------------------------------------------------
@@ -148,7 +190,7 @@ UIS.JumpRequest:Connect(function()
 end)
 
 -------------------------------------------------
--- ESP (You vs Homer) actualizado
+-- ESP (You vs Homer actualizado)
 -------------------------------------------------
 local function addESP(plr)
 	if plr == LocalPlayer then return end
@@ -156,7 +198,9 @@ local function addESP(plr)
 	if not char then return end
 	local hrp = char:FindFirstChild("HumanoidRootPart")
 	if not hrp then return end
-	if not plr.Team then return end -- ESP solo si está en un equipo
+
+	-- Solo activar si el jugador está en un equipo
+	if not plr.Team then return end
 
 	local color
 	if plr.Team.Name == "Homer" then
@@ -169,7 +213,7 @@ local function addESP(plr)
 
 	local box = Instance.new("BoxHandleAdornment")
 	box.Adornee = hrp
-	box.Size = Vector3.new(1.5, 3.5, 1) -- hitbox mediana
+	box.Size = Vector3.new(1.5,3.5,1)
 	box.AlwaysOnTop = true
 	box.Transparency = 0.5
 	box.Color3 = color
@@ -188,12 +232,12 @@ end
 
 local function updateESP()
 	for plr, box in pairs(espObjects) do
-		if not plr.Parent or not plr.Character then
+		if not plr.Parent or not plr.Character or not plr.Team then
 			removeESP(plr)
 		end
 	end
 	for _, plr in pairs(Players:GetPlayers()) do
-		if not espObjects[plr] and plr.Team then
+		if plr.Team and not espObjects[plr] then
 			addESP(plr)
 		end
 	end
@@ -211,50 +255,9 @@ ESPBtn.MouseButton1Click:Connect(function()
 	end
 end)
 
+-- Actualizar ESP automáticamente si entras a un equipo
 RunService.Heartbeat:Connect(function()
 	if espOn then
 		updateESP()
 	end
-end)
-
--------------------------------------------------
--- MINIMIZADOR / BOTÓN CIRCULAR
--------------------------------------------------
-local minimized = false
-
-local minBtn = Instance.new("TextButton", main)
-minBtn.Size = UDim2.new(0, 25, 0, 25)
-minBtn.Position = UDim2.new(1, -30, 0, 5)
-minBtn.BackgroundColor3 = Color3.fromRGB(0,0,0)
-minBtn.Text = "-"
-minBtn.TextColor3 = Color3.new(1,1,1)
-minBtn.Font = Enum.Font.GothamBold
-minBtn.TextSize = 18
-Instance.new("UICorner", minBtn).CornerRadius = UDim.new(0,12)
-
-local openBtn = Instance.new("TextButton", PlayerGui)
-openBtn.Size = UDim2.new(0, 40, 0, 40)
-openBtn.Position = UDim2.new(0, 10, 0.5, -20)
-openBtn.BackgroundColor3 = Color3.fromRGB(0,0,0)
-openBtn.Text = ""
-Instance.new("UICorner", openBtn).CornerRadius = UDim.new(0,20)
-openBtn.Visible = false
-openBtn.ZIndex = 50
-
-local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-
-minBtn.MouseButton1Click:Connect(function()
-	minimized = true
-	local goal = {Size = UDim2.new(0,210,0,35)}
-	local tween = TweenService:Create(main, tweenInfo, goal)
-	tween:Play()
-	openBtn.Visible = true
-end)
-
-openBtn.MouseButton1Click:Connect(function()
-	minimized = false
-	local goal = {Size = UDim2.new(0,210,0,260)}
-	local tween = TweenService:Create(main, tweenInfo, goal)
-	tween:Play()
-	openBtn.Visible = false
 end)
