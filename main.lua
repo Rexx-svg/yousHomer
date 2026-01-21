@@ -1,39 +1,36 @@
 --// HAROLD TOP 😹
---// UI + 5 BOTONES (TP SAFE, TP LOBBY, SPEED, WALL HOP, ESP)
---// DAY LOCK + TRUE WALL ESP
+--// UI + TP + SPEED + WALLHOP + ESP + FIX DIA
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 local Lighting = game:GetService("Lighting")
+
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
 -------------------------------------------------
--- 🌞 DAY LOCK (ANTI DAY/NIGHT BUG - NO LAG)
+-- FIX DEFINITIVO: SIEMPRE DÍA ☀️
 -------------------------------------------------
-for _,v in pairs(Lighting:GetChildren()) do
-	if v:IsA("PostEffect") or v:IsA("Atmosphere") then
-		v:Destroy()
-	end
+local function setDay()
+	Lighting.ClockTime = 13
+	Lighting.Brightness = 3
+	Lighting.ExposureCompensation = 0.3
+	Lighting.FogEnd = 100000
+	Lighting.FogStart = 0
+	Lighting.GlobalShadows = true
+	Lighting.Ambient = Color3.fromRGB(128,128,128)
+	Lighting.OutdoorAmbient = Color3.fromRGB(128,128,128)
 end
 
-Lighting.Brightness = 2
-Lighting.ClockTime = 13
-Lighting.GlobalShadows = true
-Lighting.Ambient = Color3.fromRGB(150,150,150)
-Lighting.OutdoorAmbient = Color3.fromRGB(170,170,170)
-Lighting.FogEnd = 1e9
-
-task.spawn(function()
-	while true do
-		if Lighting.ClockTime ~= 13 then
-			Lighting.ClockTime = 13
-		end
-		task.wait(2)
+RunService.RenderStepped:Connect(function()
+	if Lighting.ClockTime < 12 or Lighting.ClockTime > 14 then
+		setDay()
 	end
 end)
+
+setDay()
 
 -------------------------------------------------
 -- GUI BASE
@@ -78,7 +75,7 @@ click.Volume = 1
 local function sound() click:Play() end
 
 -------------------------------------------------
--- BUTTON MAKER
+-- BOTONES
 -------------------------------------------------
 local function button(txt,y)
 	local b = Instance.new("TextButton", main)
@@ -94,9 +91,6 @@ local function button(txt,y)
 	return b
 end
 
--------------------------------------------------
--- BOTONES
--------------------------------------------------
 local TPSafeBtn = button("TP SAFE",45)
 local TPLobbyBtn = button("TP LOBBY",85)
 local SpeedBtn   = button("SPEED",125)
@@ -128,12 +122,14 @@ TPSafeBtn.MouseButton1Click:Connect(function()
 	tpSafeOn = not tpSafeOn
 	TPSafeBtn.Text = "TP SAFE ["..(tpSafeOn and "ON" or "OFF").."]"
 
-	local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+	local char = LocalPlayer.Character
+	if not char then return end
+	local hrp = char:FindFirstChild("HumanoidRootPart")
 	if not hrp then return end
 
-	if tpSafeOn and LocalPlayer.Team and LocalPlayer.Team.Name=="Bart" then
+	if tpSafeOn and lobbyPos then
 		lastPos = hrp.CFrame
-		if lobbyPos then hrp.CFrame = lobbyPos end
+		hrp.CFrame = lobbyPos
 	elseif lastPos then
 		hrp.CFrame = lastPos
 		lastPos = nil
@@ -145,7 +141,9 @@ end)
 -------------------------------------------------
 TPLobbyBtn.MouseButton1Click:Connect(function()
 	sound()
-	if lobbyPos and LocalPlayer.Character then
+	tpOn = not tpOn
+	TPLobbyBtn.Text = "TP LOBBY ["..(tpOn and "ON" or "OFF").."]"
+	if tpOn and lobbyPos and LocalPlayer.Character then
 		LocalPlayer.Character.HumanoidRootPart.CFrame = lobbyPos
 	end
 end)
@@ -183,40 +181,38 @@ RunService.Heartbeat:Connect(function()
 	end
 end)
 
-UIS.JumpRequest:Connect(function()
-	if wallHopOn then
-		local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-		if hrp then hrp.Velocity = Vector3.new(hrp.Velocity.X,jumpForce,hrp.Velocity.Z) end
-	end
-end)
-
 -------------------------------------------------
--- 🔥 TRUE ESP (THROUGH WALLS)
+-- ESP
 -------------------------------------------------
-local function validTeam(team)
-	return team and (team.Name=="Bart" or team.Name=="Homer")
-end
-
 local function clearESP()
-	for _,h in pairs(espObjects) do h:Destroy() end
+	for _,b in pairs(espObjects) do b:Destroy() end
 	espObjects = {}
 end
 
 local function addESP(plr)
-	if plr == LocalPlayer or not validTeam(plr.Team) then return end
+	if plr == LocalPlayer or not plr.Character then return end
+	local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
 
-	local highlight = Instance.new("Highlight")
-	highlight.Adornee = plr.Character
-	highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-	highlight.FillTransparency = 0.6
-	highlight.OutlineTransparency = 0
-	highlight.FillColor = plr.Team.Name=="Bart"
-		and Color3.fromRGB(0,0,255)
-		or Color3.fromRGB(255,0,0)
-	highlight.OutlineColor = highlight.FillColor
-	highlight.Parent = Workspace
+	local box = Instance.new("BoxHandleAdornment")
+	box.Adornee = hrp
+	box.Size = Vector3.new(2.6,4.8,2.6)
+	box.AlwaysOnTop = true
+	box.Transparency = 0.4
+	box.Color3 = Color3.fromRGB(0,120,255)
+	box.ZIndex = 10
+	box.Parent = Workspace
 
-	espObjects[plr] = highlight
+	espObjects[plr] = box
+end
+
+local function updateESP()
+	if not espOn then return end
+	for _,plr in pairs(Players:GetPlayers()) do
+		if not espObjects[plr] then
+			addESP(plr)
+		end
+	end
 end
 
 ESPBtn.MouseButton1Click:Connect(function()
@@ -226,30 +222,21 @@ ESPBtn.MouseButton1Click:Connect(function()
 	if not espOn then clearESP() end
 end)
 
-RunService.Heartbeat:Connect(function()
-	if not espOn then return end
-	for _,plr in pairs(Players:GetPlayers()) do
-		if validTeam(plr.Team) and not espObjects[plr] and plr.Character then
-			addESP(plr)
-		end
-	end
-end)
-
-Players.PlayerRemoving:Connect(function(p)
-	if espObjects[p] then espObjects[p]:Destroy() espObjects[p]=nil end
-end)
+RunService.Heartbeat:Connect(updateESP)
 
 -------------------------------------------------
 -- MINIMIZAR
 -------------------------------------------------
-local open=true
+local open = true
 minimize.MouseButton1Click:Connect(function()
 	sound()
-	open=not open
-	minimize.Text=open and "-" or "+"
+	open = not open
+	minimize.Text = open and "-" or "+"
 	for _,b in pairs({TPSafeBtn,TPLobbyBtn,SpeedBtn,WallHopBtn,ESPBtn}) do
-		b.Visible=open
+		b.Visible = open
 	end
-	main:TweenSize(open and UDim2.new(0,210,0,260) or UDim2.new(0,210,0,40),
-		"Out","Quad",0.3,true)
+	main:TweenSize(
+		open and UDim2.new(0,210,0,260) or UDim2.new(0,210,0,40),
+		"Out","Quad",0.3,true
+	)
 end)
