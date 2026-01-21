@@ -16,8 +16,8 @@ gui.Name = "HAROLD_TOP"
 gui.ResetOnSpawn = false
 
 local main = Instance.new("Frame", gui)
-main.Size = UDim2.new(0, 210, 0, 260)
-main.Position = UDim2.new(0.5, -105, 0.5, -130)
+main.Size = UDim2.new(0,210,0,260)
+main.Position = UDim2.new(0.5,-105,0.5,-130)
 main.BackgroundColor3 = Color3.fromRGB(18,18,18)
 main.BorderSizePixel = 0
 main.Active = true
@@ -26,8 +26,8 @@ Instance.new("UICorner", main).CornerRadius = UDim.new(0,14)
 
 -- Minimizador
 local minimize = Instance.new("TextButton", main)
-minimize.Size = UDim2.new(0, 30, 0, 30)
-minimize.Position = UDim2.new(1, -35, 0, 2)
+minimize.Size = UDim2.new(0,30,0,30)
+minimize.Position = UDim2.new(1,-35,0,2)
 minimize.BackgroundColor3 = Color3.fromRGB(0,0,0)
 minimize.Text = "-"
 minimize.TextColor3 = Color3.new(1,1,1)
@@ -37,7 +37,6 @@ Instance.new("UICorner", minimize).CornerRadius = UDim.new(0,8)
 
 local title = Instance.new("TextLabel", main)
 title.Size = UDim2.new(1,0,0,35)
-title.Position = UDim2.new(0,0,0,0)
 title.BackgroundTransparency = 1
 title.Text = "😹 HAROLD TOP"
 title.Font = Enum.Font.GothamBold
@@ -55,9 +54,9 @@ local function sound() click:Play() end
 -------------------------------------------------
 -- BUTTON MAKER
 -------------------------------------------------
-local function button(txt, y, w)
+local function button(txt,y)
 	local b = Instance.new("TextButton", main)
-	b.Size = w or UDim2.new(1,-20,0,32)
+	b.Size = UDim2.new(1,-20,0,32)
 	b.Position = UDim2.new(0,10,0,y)
 	b.BackgroundColor3 = Color3.fromRGB(40,0,0)
 	b.Text = txt.." [OFF]"
@@ -72,31 +71,58 @@ end
 -------------------------------------------------
 -- BOTONES
 -------------------------------------------------
-local TPSafeBtn = button("TP SAFE", 45)
-local TPLobbyBtn = button("TP LOBBY", 85)
-local SpeedBtn   = button("SPEED", 125)
-local WallHopBtn = button("WALL HOP", 165)
-local ESPBtn     = button("ESP", 205)
+local TPSafeBtn = button("TP SAFE",45)
+local TPLobbyBtn = button("TP LOBBY",85)
+local SpeedBtn   = button("SPEED",125)
+local WallHopBtn = button("WALL HOP",165)
+local ESPBtn     = button("ESP",205)
 
 -------------------------------------------------
 -- STATES
 -------------------------------------------------
-local tpSafeOn, tpOn, speedOn, wallHopOn, espOn = false,false,false,false,false
+local tpSafeOn,tpOn,speedOn,wallHopOn,espOn = false,false,false,false,false
 local normalSpeed = 16
 local lobbyPos = nil
+local lastPos = nil
 local espObjects = {}
 
--- Guardar posición al spawn
-lobbyPos = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character.HumanoidRootPart.CFrame
+-------------------------------------------------
+-- GUARDAR LOBBY
+-------------------------------------------------
+LocalPlayer.CharacterAdded:Connect(function(char)
+	task.wait(1)
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	if hrp then
+		lobbyPos = hrp.CFrame
+	end
+end)
 
 -------------------------------------------------
--- TP SAFE (Simple teleport ejemplo)
+-- TP SAFE (SOLO BART)
 -------------------------------------------------
 TPSafeBtn.MouseButton1Click:Connect(function()
 	sound()
 	tpSafeOn = not tpSafeOn
 	TPSafeBtn.Text = "TP SAFE ["..(tpSafeOn and "ON" or "OFF").."]"
-	-- Aquí pondrías la lógica de TP SAFE actualizada según tu último funcionamiento
+
+	local char = LocalPlayer.Character
+	if not char then return end
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+
+	if tpSafeOn then
+		if LocalPlayer.Team and LocalPlayer.Team.Name == "Bart" then
+			lastPos = hrp.CFrame
+			if lobbyPos then
+				hrp.CFrame = lobbyPos
+			end
+		end
+	else
+		if lastPos then
+			hrp.CFrame = lastPos
+			lastPos = nil
+		end
+	end
 end)
 
 -------------------------------------------------
@@ -106,7 +132,7 @@ TPLobbyBtn.MouseButton1Click:Connect(function()
 	sound()
 	tpOn = not tpOn
 	TPLobbyBtn.Text = "TP LOBBY ["..(tpOn and "ON" or "OFF").."]"
-	if tpOn and lobbyPos and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+	if tpOn and lobbyPos and LocalPlayer.Character then
 		LocalPlayer.Character.HumanoidRootPart.CFrame = lobbyPos
 	end
 end)
@@ -124,7 +150,7 @@ SpeedBtn.MouseButton1Click:Connect(function()
 end)
 
 -------------------------------------------------
--- WALL HOP (INFINITE JUMP)
+-- WALL HOP
 -------------------------------------------------
 local jumpForce = 50
 local clampFallSpeed = 80
@@ -136,75 +162,77 @@ WallHopBtn.MouseButton1Click:Connect(function()
 end)
 
 RunService.Heartbeat:Connect(function()
+	if not wallHopOn then return end
 	local char = LocalPlayer.Character
 	if not char then return end
 	local hrp = char:FindFirstChild("HumanoidRootPart")
-	local hum = char:FindFirstChildOfClass("Humanoid")
-	if not hrp or not hum then return end
-
-	if wallHopOn and hrp.Velocity.Y < -clampFallSpeed then
-		hrp.Velocity = Vector3.new(hrp.Velocity.X, -clampFallSpeed, hrp.Velocity.Z)
+	if hrp and hrp.Velocity.Y < -clampFallSpeed then
+		hrp.Velocity = Vector3.new(hrp.Velocity.X,-clampFallSpeed,hrp.Velocity.Z)
 	end
 end)
 
 UIS.JumpRequest:Connect(function()
 	if wallHopOn then
-		local char = LocalPlayer.Character
-		if not char then return end
-		local hrp = char:FindFirstChild("HumanoidRootPart")
+		local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
 		if hrp then
-			hrp.Velocity = Vector3.new(hrp.Velocity.X, jumpForce, hrp.Velocity.Z)
+			hrp.Velocity = Vector3.new(hrp.Velocity.X,jumpForce,hrp.Velocity.Z)
 		end
 	end
 end)
 
 -------------------------------------------------
--- ESP FIXED (funciona lobby o en equipo, hitbox más grande y cuadrado)
+-- ESP FIX DEFINITIVO
 -------------------------------------------------
-local function addESP(plr)
-	if plr == LocalPlayer then return end
-	local char = plr.Character
-	if not char then return end
-	local hrp = char:FindFirstChild("HumanoidRootPart")
-	if not hrp then return end
-	if not plr.Team then return end
+local function validTeam(team)
+	return team and (team.Name=="Bart" or team.Name=="Homer")
+end
 
-	local color
-	if plr.Team.Name == "Homer" then
-		color = Color3.fromRGB(255,0,0)
-	elseif plr.Team.Name == "Bart" then
-		color = Color3.fromRGB(0,0,255)
-	else
-		return
-	end
+local function clearESP()
+	for _,b in pairs(espObjects) do b:Destroy() end
+	espObjects = {}
+end
+
+local function addESP(plr)
+	if plr==LocalPlayer then return end
+	if not validTeam(plr.Team) then return end
+	if not plr.Character then return end
+
+	local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+
+	local color = plr.Team.Name=="Homer"
+		and Color3.fromRGB(255,0,0)
+		or Color3.fromRGB(0,0,255)
 
 	local box = Instance.new("BoxHandleAdornment")
 	box.Adornee = hrp
-	box.Size = Vector3.new(2, 3.5, 2)
+	box.Size = Vector3.new(2.6,4.8,2.6)
 	box.AlwaysOnTop = true
-	box.Transparency = 0.5
+	box.Transparency = 0.4
 	box.Color3 = color
 	box.ZIndex = 10
 	box.Parent = Workspace
 
-	espObjects[plr] = box
-end
-
-local function removeESP(plr)
-	if espObjects[plr] then
-		espObjects[plr]:Destroy()
-		espObjects[plr] = nil
-	end
+	espObjects[plr]=box
 end
 
 local function updateESP()
-	for plr, box in pairs(espObjects) do
-		if not plr.Parent or not plr.Character or not plr.Team then
-			removeESP(plr)
+	if not espOn then return end
+
+	if not validTeam(LocalPlayer.Team) then
+		clearESP()
+		return
+	end
+
+	for plr,box in pairs(espObjects) do
+		if not validTeam(plr.Team) or not plr.Character then
+			box:Destroy()
+			espObjects[plr]=nil
 		end
 	end
-	for _, plr in pairs(Players:GetPlayers()) do
-		if plr.Team and not espObjects[plr] then
+
+	for _,plr in pairs(Players:GetPlayers()) do
+		if validTeam(plr.Team) and not espObjects[plr] then
 			addESP(plr)
 		end
 	end
@@ -214,38 +242,29 @@ ESPBtn.MouseButton1Click:Connect(function()
 	sound()
 	espOn = not espOn
 	ESPBtn.Text = "ESP ["..(espOn and "ON" or "OFF").."]"
-	if not espOn then
-		for _, plr in pairs(espObjects) do
-			plr:Destroy()
-		end
-		espObjects = {}
-	end
+	if not espOn then clearESP() end
 end)
 
-RunService.Heartbeat:Connect(function()
-	if espOn then
-		updateESP()
-	end
+RunService.Heartbeat:Connect(updateESP)
+Players.PlayerAdded:Connect(updateESP)
+Players.PlayerRemoving:Connect(function(p)
+	if espObjects[p] then espObjects[p]:Destroy() espObjects[p]=nil end
 end)
 
 -------------------------------------------------
--- MINIMIZADOR / MAXIMIZADOR
+-- MINIMIZAR / MAXIMIZAR
 -------------------------------------------------
-local open = true
+local open=true
 minimize.MouseButton1Click:Connect(function()
 	sound()
-	open = not open
+	open=not open
 	if open then
-		minimize.Text = "-"
-		for _, btn in pairs({TPSafeBtn,TPLobbyBtn,SpeedBtn,WallHopBtn,ESPBtn}) do
-			btn.Visible = true
-		end
+		minimize.Text="-"
+		for _,b in pairs({TPSafeBtn,TPLobbyBtn,SpeedBtn,WallHopBtn,ESPBtn}) do b.Visible=true end
 		main:TweenSize(UDim2.new(0,210,0,260),"Out","Quad",0.3,true)
 	else
-		minimize.Text = "+"
-		for _, btn in pairs({TPSafeBtn,TPLobbyBtn,SpeedBtn,WallHopBtn,ESPBtn}) do
-			btn.Visible = false
-		end
+		minimize.Text="+"
+		for _,b in pairs({TPSafeBtn,TPLobbyBtn,SpeedBtn,WallHopBtn,ESPBtn}) do b.Visible=false end
 		main:TweenSize(UDim2.new(0,210,0,40),"Out","Quad",0.3,true)
 	end
 end)
