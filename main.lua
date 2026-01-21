@@ -5,6 +5,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
+local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
@@ -16,8 +17,8 @@ gui.Name = "HAROLD_TOP"
 gui.ResetOnSpawn = false
 
 local main = Instance.new("Frame", gui)
-main.Size = UDim2.new(0, 210, 0, 245) -- ajustado a 5 botones
-main.Position = UDim2.new(0.5, -105, 0.5, -122)
+main.Size = UDim2.new(0, 210, 0, 260)
+main.Position = UDim2.new(0.5, -105, 0.5, -130)
 main.BackgroundColor3 = Color3.fromRGB(18,18,18)
 main.BorderSizePixel = 0
 main.Active = true
@@ -147,7 +148,7 @@ UIS.JumpRequest:Connect(function()
 end)
 
 -------------------------------------------------
--- ESP (You vs Homer)
+-- ESP (You vs Homer) actualizado
 -------------------------------------------------
 local function addESP(plr)
 	if plr == LocalPlayer then return end
@@ -155,14 +156,15 @@ local function addESP(plr)
 	if not char then return end
 	local hrp = char:FindFirstChild("HumanoidRootPart")
 	if not hrp then return end
+	if not plr.Team then return end -- ESP solo si está en un equipo
 
 	local color
-	if plr.Team and plr.Team.Name == "Homer" then
+	if plr.Team.Name == "Homer" then
 		color = Color3.fromRGB(255,0,0) -- rojo para Homer
-	elseif plr.Team and plr.Team.Name == "Bart" then
+	elseif plr.Team.Name == "Bart" then
 		color = Color3.fromRGB(0,0,255) -- azul para Barts
 	else
-		color = Color3.fromRGB(255,255,255) -- fallback blanco
+		color = Color3.fromRGB(255,255,255)
 	end
 
 	local box = Instance.new("BoxHandleAdornment")
@@ -185,15 +187,13 @@ local function removeESP(plr)
 end
 
 local function updateESP()
-	-- limpiar ESP de jugadores que se fueron
 	for plr, box in pairs(espObjects) do
 		if not plr.Parent or not plr.Character then
 			removeESP(plr)
 		end
 	end
-	-- agregar ESP a los nuevos jugadores
 	for _, plr in pairs(Players:GetPlayers()) do
-		if not espObjects[plr] then
+		if not espObjects[plr] and plr.Team then
 			addESP(plr)
 		end
 	end
@@ -211,9 +211,50 @@ ESPBtn.MouseButton1Click:Connect(function()
 	end
 end)
 
--- Actualizar ESP cada frame si está activo
 RunService.Heartbeat:Connect(function()
 	if espOn then
 		updateESP()
 	end
+end)
+
+-------------------------------------------------
+-- MINIMIZADOR / BOTÓN CIRCULAR
+-------------------------------------------------
+local minimized = false
+
+local minBtn = Instance.new("TextButton", main)
+minBtn.Size = UDim2.new(0, 25, 0, 25)
+minBtn.Position = UDim2.new(1, -30, 0, 5)
+minBtn.BackgroundColor3 = Color3.fromRGB(0,0,0)
+minBtn.Text = "-"
+minBtn.TextColor3 = Color3.new(1,1,1)
+minBtn.Font = Enum.Font.GothamBold
+minBtn.TextSize = 18
+Instance.new("UICorner", minBtn).CornerRadius = UDim.new(0,12)
+
+local openBtn = Instance.new("TextButton", PlayerGui)
+openBtn.Size = UDim2.new(0, 40, 0, 40)
+openBtn.Position = UDim2.new(0, 10, 0.5, -20)
+openBtn.BackgroundColor3 = Color3.fromRGB(0,0,0)
+openBtn.Text = ""
+Instance.new("UICorner", openBtn).CornerRadius = UDim.new(0,20)
+openBtn.Visible = false
+openBtn.ZIndex = 50
+
+local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+
+minBtn.MouseButton1Click:Connect(function()
+	minimized = true
+	local goal = {Size = UDim2.new(0,210,0,35)}
+	local tween = TweenService:Create(main, tweenInfo, goal)
+	tween:Play()
+	openBtn.Visible = true
+end)
+
+openBtn.MouseButton1Click:Connect(function()
+	minimized = false
+	local goal = {Size = UDim2.new(0,210,0,260)}
+	local tween = TweenService:Create(main, tweenInfo, goal)
+	tween:Play()
+	openBtn.Visible = false
 end)
