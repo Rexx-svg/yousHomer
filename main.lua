@@ -24,6 +24,17 @@ main.Active = true
 main.Draggable = true
 Instance.new("UICorner", main).CornerRadius = UDim.new(0,14)
 
+-- Minimizador
+local minimize = Instance.new("TextButton", main)
+minimize.Size = UDim2.new(0, 30, 0, 30)
+minimize.Position = UDim2.new(1, -35, 0, 2)
+minimize.BackgroundColor3 = Color3.fromRGB(0,0,0)
+minimize.Text = "-"
+minimize.TextColor3 = Color3.new(1,1,1)
+minimize.Font = Enum.Font.GothamBold
+minimize.TextSize = 14
+Instance.new("UICorner", minimize).CornerRadius = UDim.new(0,8)
+
 local title = Instance.new("TextLabel", main)
 title.Size = UDim2.new(1,0,0,35)
 title.Position = UDim2.new(0,0,0,0)
@@ -32,33 +43,6 @@ title.Text = "😹 HAROLD TOP"
 title.Font = Enum.Font.GothamBold
 title.TextSize = 14
 title.TextColor3 = Color3.fromRGB(255,80,80)
-
--------------------------------------------------
--- MINIMIZADOR
--------------------------------------------------
-local minimizeBtn = Instance.new("TextButton", main)
-minimizeBtn.Size = UDim2.new(0,30,0,30)
-minimizeBtn.Position = UDim2.new(1,-35,0,2)
-minimizeBtn.BackgroundColor3 = Color3.fromRGB(0,0,0)
-minimizeBtn.Text = "-"
-minimizeBtn.TextColor3 = Color3.new(1,1,1)
-minimizeBtn.Font = Enum.Font.GothamBold
-minimizeBtn.TextSize = 16
-Instance.new("UICorner", minimizeBtn).CornerRadius = UDim.new(0,15)
-
-local minimized = false
-local buttons = {}
-
-local function toggleMenu()
-	minimized = not minimized
-	for _, b in pairs(buttons) do
-		b.Visible = not minimized
-	end
-	main.Size = minimized and UDim2.new(0, 50, 0, 50) or UDim2.new(0, 210, 0, 260)
-	minimizeBtn.Text = minimized and "+" or "-"
-end
-
-minimizeBtn.MouseButton1Click:Connect(toggleMenu)
 
 -------------------------------------------------
 -- CLICK SOUND
@@ -82,7 +66,6 @@ local function button(txt, y, w)
 	b.TextSize = 12
 	b.BorderSizePixel = 0
 	Instance.new("UICorner", b).CornerRadius = UDim.new(0,10)
-	table.insert(buttons,b)
 	return b
 end
 
@@ -113,20 +96,24 @@ TPSafeBtn.MouseButton1Click:Connect(function()
 	sound()
 	tpSafeOn = not tpSafeOn
 	TPSafeBtn.Text = "TP SAFE ["..(tpSafeOn and "ON" or "OFF").."]"
-
-	if tpSafeOn and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-		for _, part in pairs(Workspace:GetDescendants()) do
-			if part:IsA("BasePart") then
-				if part.Color == Color3.fromRGB(0,255,0) then -- piso verde
-					local ray = Ray.new(part.Position, Vector3.new(0,-5,0))
-					local hit, hitPos = Workspace:FindPartOnRayWithIgnoreList(ray, {LocalPlayer.Character})
-					if hit and hit.Color == Color3.fromRGB(255,255,0) then -- borde amarillo debajo
-						LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(hit.Position + Vector3.new(0, 3, 0))
-						break
-					end
-				end
-			end
+	-- Buscar piso verde con borde amarillo
+	local greenFloor
+	for _, obj in pairs(Workspace:GetDescendants()) do
+		if obj:IsA("BasePart") and obj.Name:lower():find("green") then
+			-- verificar que tenga borde amarillo (ejemplo: amarillo pequeño debajo)
+			local below = obj.Position - Vector3.new(0, obj.Size.Y/2 + 0.1, 0)
+			local ray = Ray.new(obj.Position, Vector3.new(0,-obj.Size.Y,0))
+			-- solo usamos el primer verde
+			greenFloor = obj
+			break
 		end
+	end
+	if greenFloor and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+		LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(
+			greenFloor.Position.X,
+			greenFloor.Position.Y + greenFloor.Size.Y/2 + 1, -- encima del "palito amarillo"
+			greenFloor.Position.Z
+		)
 	end
 end)
 
@@ -190,7 +177,7 @@ UIS.JumpRequest:Connect(function()
 end)
 
 -------------------------------------------------
--- ESP (You vs Homer actualizado)
+-- ESP (You vs Homer FIXED)
 -------------------------------------------------
 local function addESP(plr)
 	if plr == LocalPlayer then return end
@@ -206,9 +193,7 @@ local function addESP(plr)
 	if plr.Team.Name == "Homer" then
 		color = Color3.fromRGB(255,0,0) -- rojo para Homer
 	elseif plr.Team.Name == "Bart" then
-		color = Color3.fromRGB(0,0,255) -- azul para Barts
-	else
-		color = Color3.fromRGB(255,255,255)
+		color = Color3.fromRGB(0,0,255) -- azul para Bart
 	end
 
 	local box = Instance.new("BoxHandleAdornment")
@@ -255,9 +240,30 @@ ESPBtn.MouseButton1Click:Connect(function()
 	end
 end)
 
--- Actualizar ESP automáticamente si entras a un equipo
 RunService.Heartbeat:Connect(function()
 	if espOn then
 		updateESP()
+	end
+end)
+
+-------------------------------------------------
+-- MINIMIZADOR / MAXIMIZADOR
+-------------------------------------------------
+local open = true
+minimize.MouseButton1Click:Connect(function()
+	sound()
+	open = not open
+	if open then
+		minimize.Text = "-"
+		for _, btn in pairs({TPSafeBtn,TPLobbyBtn,SpeedBtn,WallHopBtn,ESPBtn}) do
+			btn.Visible = true
+		end
+		main:TweenSize(UDim2.new(0,210,0,260),"Out","Quad",0.3,true)
+	else
+		minimize.Text = "+"
+		for _, btn in pairs({TPSafeBtn,TPLobbyBtn,SpeedBtn,WallHopBtn,ESPBtn}) do
+			btn.Visible = false
+		end
+		main:TweenSize(UDim2.new(0,210,0,40),"Out","Quad",0.3,true)
 	end
 end)
