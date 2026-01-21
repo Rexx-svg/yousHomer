@@ -1,20 +1,3 @@
--------------------------------------------------
--- DIA FORZADO (SIN LAG / SIN TOCAR ESP)
--------------------------------------------------
-local Lighting = game:GetService("Lighting")
-
-Lighting.ClockTime = 13
-Lighting.Brightness = 2
-Lighting.GlobalShadows = true
-Lighting.FogEnd = 100000
-Lighting.OutdoorAmbient = Color3.fromRGB(128,128,128)
-
-Lighting:GetPropertyChangedSignal("ClockTime"):Connect(function()
-	if Lighting.ClockTime < 6 or Lighting.ClockTime > 18 then
-		Lighting.ClockTime = 13
-	end
-end)
-
 --// HAROLD TOP 😹
 --// UI + 5 BOTONES (TP SAFE, TP LOBBY, SPEED, WALL HOP, ESP)
 
@@ -22,6 +5,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
+local Lighting = game:GetService("Lighting")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
@@ -198,7 +182,7 @@ UIS.JumpRequest:Connect(function()
 end)
 
 -------------------------------------------------
--- ESP FIX DEFINITIVO (NO TOCADO)
+-- ESP FIX DEFINITIVO (NO TOCAR)
 -------------------------------------------------
 local function validTeam(team)
 	return team and (team.Name=="Bart" or team.Name=="Homer")
@@ -285,3 +269,22 @@ minimize.MouseButton1Click:Connect(function()
 		main:TweenSize(UDim2.new(0,210,0,40),"Out","Quad",0.3,true)
 	end
 end)
+
+-------------------------------------------------
+-- FIJAR MEDIO DÍA AL ENTRAR EQUIPO
+-------------------------------------------------
+local function setMidDay()
+	Lighting.ClockTime = 13
+	Lighting.Brightness = 2
+	Lighting.GlobalShadows = true
+	Lighting.FogEnd = 100000
+end
+
+-- Al entrar a cualquier equipo
+LocalPlayer:GetPropertyChangedSignal("Team"):Connect(function()
+	task.wait(0.1)
+	setMidDay()
+end)
+
+-- Al ejecutar el script por primera vez
+setMidDay()
