@@ -1,5 +1,6 @@
 --// HAROLD TOP 😹
 --// UI + 5 BOTONES (TP SAFE, TP LOBBY, SPEED, WALL HOP, ESP)
+--// KEYBIND: Presiona K para abrir/cerrar el menú
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -60,7 +61,7 @@ local function button(txt,y)
 	b.Size = UDim2.new(1,-20,0,32)
 	b.Position = UDim2.new(0,10,0,y)
 	b.BackgroundColor3 = Color3.fromRGB(40,0,0)
-	b.Text = txt.." [OFF]"
+	b.Text = txt
 	b.TextColor3 = Color3.new(1,1,1)
 	b.Font = Enum.Font.GothamBold
 	b.TextSize = 12
@@ -74,9 +75,9 @@ end
 -------------------------------------------------
 local TPSafeBtn = button("TP SAFE",45)
 local TPLobbyBtn = button("TP LOBBY",85)
-local SpeedBtn   = button("SPEED",125)
-local WallHopBtn = button("WALL HOP",165)
-local ESPBtn     = button("ESP",205)
+local SpeedBtn   = button("SPEED [OFF]",125)
+local WallHopBtn = button("WALL HOP [OFF]",165)
+local ESPBtn     = button("ESP [OFF]",205)
 
 -------------------------------------------------
 -- STATES
@@ -99,12 +100,11 @@ LocalPlayer.CharacterAdded:Connect(function(char)
 end)
 
 -------------------------------------------------
--- TP SAFE (SOLO BART)
+-- TP SAFE (TEXTO BACK)
 -------------------------------------------------
 TPSafeBtn.MouseButton1Click:Connect(function()
 	sound()
 	tpSafeOn = not tpSafeOn
-	TPSafeBtn.Text = "TP SAFE ["..(tpSafeOn and "ON" or "OFF").."]"
 
 	local char = LocalPlayer.Character
 	if not char then return end
@@ -112,6 +112,7 @@ TPSafeBtn.MouseButton1Click:Connect(function()
 	if not hrp then return end
 
 	if tpSafeOn then
+		TPSafeBtn.Text = "BACK"
 		if LocalPlayer.Team and LocalPlayer.Team.Name == "Bart" then
 			lastPos = hrp.CFrame
 			if lobbyPos then
@@ -119,6 +120,7 @@ TPSafeBtn.MouseButton1Click:Connect(function()
 			end
 		end
 	else
+		TPSafeBtn.Text = "TP SAFE"
 		if lastPos then
 			hrp.CFrame = lastPos
 			lastPos = nil
@@ -127,15 +129,19 @@ TPSafeBtn.MouseButton1Click:Connect(function()
 end)
 
 -------------------------------------------------
--- TP LOBBY
+-- TP LOBBY (TELEPORTING...)
 -------------------------------------------------
 TPLobbyBtn.MouseButton1Click:Connect(function()
 	sound()
-	tpOn = not tpOn
-	TPLobbyBtn.Text = "TP LOBBY ["..(tpOn and "ON" or "OFF").."]"
-	if tpOn and lobbyPos and LocalPlayer.Character then
+	TPLobbyBtn.Text = "TELEPORTING..."
+
+	if lobbyPos and LocalPlayer.Character then
+		task.wait(0.2)
 		LocalPlayer.Character.HumanoidRootPart.CFrame = lobbyPos
 	end
+
+	task.wait(0.3)
+	TPLobbyBtn.Text = "TP LOBBY"
 end)
 
 -------------------------------------------------
@@ -182,7 +188,7 @@ UIS.JumpRequest:Connect(function()
 end)
 
 -------------------------------------------------
--- ESP FIX DEFINITIVO (NO TOCAR)
+-- ESP
 -------------------------------------------------
 local function validTeam(team)
 	return team and (team.Name=="Bart" or team.Name=="Homer")
@@ -253,25 +259,43 @@ Players.PlayerRemoving:Connect(function(p)
 end)
 
 -------------------------------------------------
--- MINIMIZAR / MAXIMIZAR
+-- MINIMIZAR / MAXIMIZAR (BOTÓN Y TECLA K)
 -------------------------------------------------
-local open=true
-minimize.MouseButton1Click:Connect(function()
-	sound()
-	open=not open
+local open = true
+
+local function toggleMenu()
+	open = not open
 	if open then
-		minimize.Text="-"
-		for _,b in pairs({TPSafeBtn,TPLobbyBtn,SpeedBtn,WallHopBtn,ESPBtn}) do b.Visible=true end
+		minimize.Text = "-"
+		for _,b in pairs({TPSafeBtn,TPLobbyBtn,SpeedBtn,WallHopBtn,ESPBtn}) do
+			b.Visible = true
+		end
 		main:TweenSize(UDim2.new(0,210,0,260),"Out","Quad",0.3,true)
 	else
-		minimize.Text="+"
-		for _,b in pairs({TPSafeBtn,TPLobbyBtn,SpeedBtn,WallHopBtn,ESPBtn}) do b.Visible=false end
+		minimize.Text = "+"
+		for _,b in pairs({TPSafeBtn,TPLobbyBtn,SpeedBtn,WallHopBtn,ESPBtn}) do
+			b.Visible = false
+		end
 		main:TweenSize(UDim2.new(0,210,0,40),"Out","Quad",0.3,true)
+	end
+end
+
+minimize.MouseButton1Click:Connect(function()
+	sound()
+	toggleMenu()
+end)
+
+-- KEYBIND K
+UIS.InputBegan:Connect(function(input, gpe)
+	if gpe then return end
+	if input.KeyCode == Enum.KeyCode.K then
+		sound()
+		toggleMenu()
 	end
 end)
 
 -------------------------------------------------
--- FIJAR MEDIO DÍA AL ENTRAR EQUIPO
+-- FIJAR MEDIO DÍA
 -------------------------------------------------
 local function setMidDay()
 	Lighting.ClockTime = 13
@@ -280,11 +304,9 @@ local function setMidDay()
 	Lighting.FogEnd = 100000
 end
 
--- Al entrar a cualquier equipo
 LocalPlayer:GetPropertyChangedSignal("Team"):Connect(function()
 	task.wait(0.1)
 	setMidDay()
 end)
 
--- Al ejecutar el script por primera vez
 setMidDay()
