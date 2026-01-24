@@ -1,11 +1,10 @@
 --// HAROLD TOP 😹
---// UI + 5 BOTONES (TP SAFE, TP LOBBY, SPEED, WALL HOP, ESP)
+--// Full GUI + BAT SPAMMER SOURCE
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UIS = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
-local Lighting = game:GetService("Lighting")
+
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
@@ -17,24 +16,13 @@ gui.Name = "HAROLD_TOP"
 gui.ResetOnSpawn = false
 
 local main = Instance.new("Frame", gui)
-main.Size = UDim2.new(0,210,0,260)
-main.Position = UDim2.new(0.5,-105,0.5,-130)
+main.Size = UDim2.new(0, 210, 0, 260)
+main.Position = UDim2.new(0.5, -105, 0.5, -130)
 main.BackgroundColor3 = Color3.fromRGB(18,18,18)
 main.BorderSizePixel = 0
 main.Active = true
 main.Draggable = true
 Instance.new("UICorner", main).CornerRadius = UDim.new(0,14)
-
--- Minimizador
-local minimize = Instance.new("TextButton", main)
-minimize.Size = UDim2.new(0,30,0,30)
-minimize.Position = UDim2.new(1,-35,0,2)
-minimize.BackgroundColor3 = Color3.fromRGB(0,0,0)
-minimize.Text = "-"
-minimize.TextColor3 = Color3.new(1,1,1)
-minimize.Font = Enum.Font.GothamBold
-minimize.TextSize = 14
-Instance.new("UICorner", minimize).CornerRadius = UDim.new(0,8)
 
 local title = Instance.new("TextLabel", main)
 title.Size = UDim2.new(1,0,0,35)
@@ -55,9 +43,9 @@ local function sound() click:Play() end
 -------------------------------------------------
 -- BUTTON MAKER
 -------------------------------------------------
-local function button(txt,y)
+local function button(txt, y, w)
 	local b = Instance.new("TextButton", main)
-	b.Size = UDim2.new(1,-20,0,32)
+	b.Size = w or UDim2.new(1,-20,0,32)
 	b.Position = UDim2.new(0,10,0,y)
 	b.BackgroundColor3 = Color3.fromRGB(40,0,0)
 	b.Text = txt.." [OFF]"
@@ -70,71 +58,91 @@ local function button(txt,y)
 end
 
 -------------------------------------------------
--- BOTONES
+-- BUTTONS (ORDEN CORRECTO)
 -------------------------------------------------
-local TPSafeBtn = button("TP SAFE",45)
-local TPLobbyBtn = button("TP LOBBY",85)
-local SpeedBtn   = button("SPEED",125)
-local WallHopBtn = button("WALL HOP",165)
-local ESPBtn     = button("ESP",205)
+local BatBtn   = button("BAT SPAMMER", 45)
+local SpeedBtn = button("SPEED", 85)
+local KickBtn  = button("KICK", 125)
+
+local ESPBtn = button("ESP", 165, UDim2.new(0.48,-5,0,32))
+ESPBtn.Position = UDim2.new(0,10,0,165)
+
+local RayBtn = button("RAY", 165, UDim2.new(0.48,-5,0,32))
+RayBtn.Position = UDim2.new(0.52,0,0,165)
+
+local AntiBtn = button("ANTIRAGDOLL", 205)
 
 -------------------------------------------------
 -- STATES
 -------------------------------------------------
-local tpSafeOn,tpOn,speedOn,wallHopOn,espOn = false,false,false,false,false
+local batOn, speedOn, kickOn, espOn, rayOn, antiOn = false,false,false,false,false,false
 local normalSpeed = 16
-local lobbyPos = nil
-local lastPos = nil
-local espObjects = {}
 
 -------------------------------------------------
--- GUARDAR LOBBY
+-- BAT SPAMMER SOURCE
 -------------------------------------------------
-LocalPlayer.CharacterAdded:Connect(function(char)
-	task.wait(1)
-	local hrp = char:FindFirstChild("HumanoidRootPart")
-	if hrp then
-		lobbyPos = hrp.CFrame
-	end
-end)
+local batNames = {"bat","bate","murciélago","murcielago"}
+local attackDelay = 0.08
+local batThread
 
--------------------------------------------------
--- TP SAFE (SOLO BART)
--------------------------------------------------
-TPSafeBtn.MouseButton1Click:Connect(function()
-	sound()
-	tpSafeOn = not tpSafeOn
-	TPSafeBtn.Text = "TP SAFE ["..(tpSafeOn and "ON" or "OFF").."]"
-
+local function findBat()
 	local char = LocalPlayer.Character
-	if not char then return end
-	local hrp = char:FindFirstChild("HumanoidRootPart")
-	if not hrp then return end
+	if not char then return nil end
 
-	if tpSafeOn then
-		if LocalPlayer.Team and LocalPlayer.Team.Name == "Bart" then
-			lastPos = hrp.CFrame
-			if lobbyPos then
-				hrp.CFrame = lobbyPos
+	for _,v in ipairs(char:GetChildren()) do
+		if v:IsA("Tool") then
+			for _,n in ipairs(batNames) do
+				if v.Name:lower():find(n) then
+					return v
+				end
 			end
 		end
-	else
-		if lastPos then
-			hrp.CFrame = lastPos
-			lastPos = nil
+	end
+
+	for _,v in ipairs(LocalPlayer.Backpack:GetChildren()) do
+		if v:IsA("Tool") then
+			for _,n in ipairs(batNames) do
+				if v.Name:lower():find(n) then
+					return v
+				end
+			end
 		end
 	end
-end)
+end
+
+local function equipBat(tool)
+	local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+	if hum and tool then
+		hum:EquipTool(tool)
+	end
+end
+
+local function startBat()
+	batThread = task.spawn(function()
+		while batOn do
+			local bat = findBat()
+			if bat then
+				equipBat(bat)
+				pcall(function()
+					bat:Activate()
+				end)
+			end
+			task.wait(attackDelay)
+		end
+	end)
+end
 
 -------------------------------------------------
--- TP LOBBY
+-- BAT BUTTON
 -------------------------------------------------
-TPLobbyBtn.MouseButton1Click:Connect(function()
+BatBtn.MouseButton1Click:Connect(function()
 	sound()
-	tpOn = not tpOn
-	TPLobbyBtn.Text = "TP LOBBY ["..(tpOn and "ON" or "OFF").."]"
-	if tpOn and lobbyPos and LocalPlayer.Character then
-		LocalPlayer.Character.HumanoidRootPart.CFrame = lobbyPos
+	batOn = not batOn
+	BatBtn.Text = "BAT SPAMMER ["..(batOn and "ON" or "OFF").."]"
+	BatBtn.BackgroundColor3 = batOn and Color3.fromRGB(200,0,0) or Color3.fromRGB(40,0,0)
+
+	if batOn then
+		startBat()
 	end
 end)
 
@@ -143,148 +151,115 @@ end)
 -------------------------------------------------
 SpeedBtn.MouseButton1Click:Connect(function()
 	sound()
-	local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+	local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
 	if not hum then return end
 	speedOn = not speedOn
 	hum.WalkSpeed = speedOn and 38.5 or normalSpeed
 	SpeedBtn.Text = "SPEED ["..(speedOn and "ON" or "OFF").."]"
+	SpeedBtn.BackgroundColor3 = speedOn and Color3.fromRGB(0,120,255) or Color3.fromRGB(40,0,0)
 end)
 
 -------------------------------------------------
--- WALL HOP
+-- KICK (VISUAL)
 -------------------------------------------------
-local jumpForce = 50
-local clampFallSpeed = 80
-
-WallHopBtn.MouseButton1Click:Connect(function()
+KickBtn.MouseButton1Click:Connect(function()
 	sound()
-	wallHopOn = not wallHopOn
-	WallHopBtn.Text = "WALL HOP ["..(wallHopOn and "ON" or "OFF").."]"
-end)
-
-RunService.Heartbeat:Connect(function()
-	if not wallHopOn then return end
-	local char = LocalPlayer.Character
-	if not char then return end
-	local hrp = char:FindFirstChild("HumanoidRootPart")
-	if hrp and hrp.Velocity.Y < -clampFallSpeed then
-		hrp.Velocity = Vector3.new(hrp.Velocity.X,-clampFallSpeed,hrp.Velocity.Z)
-	end
-end)
-
-UIS.JumpRequest:Connect(function()
-	if wallHopOn then
-		local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-		if hrp then
-			hrp.Velocity = Vector3.new(hrp.Velocity.X,jumpForce,hrp.Velocity.Z)
-		end
-	end
+	kickOn = not kickOn
+	KickBtn.Text = "KICK ["..(kickOn and "ON" or "OFF").."]"
+	KickBtn.BackgroundColor3 = kickOn and Color3.fromRGB(120,0,0) or Color3.fromRGB(40,0,0)
 end)
 
 -------------------------------------------------
--- ESP FIX DEFINITIVO (NO TOCAR)
+-- ESP
 -------------------------------------------------
-local function validTeam(team)
-	return team and (team.Name=="Bart" or team.Name=="Homer")
-end
-
-local function clearESP()
-	for _,b in pairs(espObjects) do b:Destroy() end
-	espObjects = {}
-end
+local espObjects = {}
 
 local function addESP(plr)
-	if plr==LocalPlayer then return end
-	if not validTeam(plr.Team) then return end
-	if not plr.Character then return end
+	if plr == LocalPlayer then return end
+	local c = plr.Character
+	if not c then return end
+	local hrp = c:FindFirstChild("HumanoidRootPart")
+	local head = c:FindFirstChild("Head")
+	local hum = c:FindFirstChildOfClass("Humanoid")
+	if not (hrp and head and hum and hum.Health > 0) then return end
 
-	local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
-	if not hrp then return end
-
-	local color = plr.Team.Name=="Homer"
-		and Color3.fromRGB(255,0,0)
-		or Color3.fromRGB(0,0,255)
-
-	local box = Instance.new("BoxHandleAdornment")
-	box.Adornee = hrp
-	box.Size = Vector3.new(2.6,4.8,2.6)
+	local box = Instance.new("BoxHandleAdornment", hrp)
+	box.Size = Vector3.new(5,7,3)
 	box.AlwaysOnTop = true
-	box.Transparency = 0.4
-	box.Color3 = color
-	box.ZIndex = 10
-	box.Parent = Workspace
+	box.Transparency = 0.5
+	box.Color3 = Color3.fromRGB(255,0,255)
 
-	espObjects[plr]=box
-end
+	local bb = Instance.new("BillboardGui", head)
+	bb.Size = UDim2.new(0,120,0,30)
+	bb.AlwaysOnTop = true
+	local tl = Instance.new("TextLabel", bb)
+	tl.Size = UDim2.new(1,0,1,0)
+	tl.BackgroundTransparency = 1
+	tl.Text = plr.Name
+	tl.TextColor3 = Color3.fromRGB(255,0,255)
+	tl.TextScaled = true
 
-local function updateESP()
-	if not espOn then return end
-
-	if not validTeam(LocalPlayer.Team) then
-		clearESP()
-		return
-	end
-
-	for plr,box in pairs(espObjects) do
-		if not validTeam(plr.Team) or not plr.Character then
-			box:Destroy()
-			espObjects[plr]=nil
-		end
-	end
-
-	for _,plr in pairs(Players:GetPlayers()) do
-		if validTeam(plr.Team) and not espObjects[plr] then
-			addESP(plr)
-		end
-	end
+	espObjects[plr] = {box,bb}
 end
 
 ESPBtn.MouseButton1Click:Connect(function()
 	sound()
 	espOn = not espOn
 	ESPBtn.Text = "ESP ["..(espOn and "ON" or "OFF").."]"
-	if not espOn then clearESP() end
-end)
+	ESPBtn.BackgroundColor3 = espOn and Color3.fromRGB(0,200,0) or Color3.fromRGB(40,0,0)
 
-RunService.Heartbeat:Connect(updateESP)
-Players.PlayerAdded:Connect(updateESP)
-Players.PlayerRemoving:Connect(function(p)
-	if espObjects[p] then espObjects[p]:Destroy() espObjects[p]=nil end
-end)
-
--------------------------------------------------
--- MINIMIZAR / MAXIMIZAR
--------------------------------------------------
-local open=true
-minimize.MouseButton1Click:Connect(function()
-	sound()
-	open=not open
-	if open then
-		minimize.Text="-"
-		for _,b in pairs({TPSafeBtn,TPLobbyBtn,SpeedBtn,WallHopBtn,ESPBtn}) do b.Visible=true end
-		main:TweenSize(UDim2.new(0,210,0,260),"Out","Quad",0.3,true)
+	if espOn then
+		for _,p in ipairs(Players:GetPlayers()) do addESP(p) end
 	else
-		minimize.Text="+"
-		for _,b in pairs({TPSafeBtn,TPLobbyBtn,SpeedBtn,WallHopBtn,ESPBtn}) do b.Visible=false end
-		main:TweenSize(UDim2.new(0,210,0,40),"Out","Quad",0.3,true)
+		for _,t in pairs(espObjects) do
+			for _,o in pairs(t) do o:Destroy() end
+		end
+		espObjects = {}
 	end
 end)
 
 -------------------------------------------------
--- FIJAR MEDIO DÍA AL ENTRAR EQUIPO
+-- RAY
 -------------------------------------------------
-local function setMidDay()
-	Lighting.ClockTime = 13
-	Lighting.Brightness = 2
-	Lighting.GlobalShadows = true
-	Lighting.FogEnd = 100000
+local rayParts = {}
+local function isBase(p)
+	local n = p.Name:lower()
+	return n:find("base") or n:find("claim")
 end
 
--- Al entrar a cualquier equipo
-LocalPlayer:GetPropertyChangedSignal("Team"):Connect(function()
-	task.wait(0.1)
-	setMidDay()
+RayBtn.MouseButton1Click:Connect(function()
+	sound()
+	rayOn = not rayOn
+	RayBtn.Text = "RAY ["..(rayOn and "ON" or "OFF").."]"
+	RayBtn.BackgroundColor3 = rayOn and Color3.fromRGB(255,140,0) or Color3.fromRGB(40,0,0)
+
+	for _,v in ipairs(Workspace:GetDescendants()) do
+		if v:IsA("BasePart") and isBase(v) then
+			if rayOn then
+				rayParts[v] = v.LocalTransparencyModifier
+				v.LocalTransparencyModifier = 0.8
+			else
+				v.LocalTransparencyModifier = rayParts[v] or 0
+			end
+		end
+	end
 end)
 
--- Al ejecutar el script por primera vez
-setMidDay()
+-------------------------------------------------
+-- ANTI RAGDOLL
+-------------------------------------------------
+AntiBtn.MouseButton1Click:Connect(function()
+	sound()
+	antiOn = not antiOn
+	AntiBtn.Text = "ANTIRAGDOLL ["..(antiOn and "ON" or "OFF").."]"
+	AntiBtn.BackgroundColor3 = antiOn and Color3.fromRGB(120,120,120) or Color3.fromRGB(40,0,0)
+end)
+
+RunService.Heartbeat:Connect(function()
+	if antiOn then
+		local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
+		if hum and hum:GetState() == Enum.HumanoidStateType.Ragdoll then
+			hum:ChangeState(Enum.HumanoidStateType.Running)
+		end
+	end
+end)
