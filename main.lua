@@ -6,7 +6,6 @@
 -- Player:
 --   • Speed (Toggle)
 --   • Wall Hop (Toggle)
--- Skins Limitadas: toggles para comprar/equipar viejas limitadas (Ghost, Witch, Beauty, CPTDev, etc.)
 
 -- Rayfield Loader
 local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
@@ -17,7 +16,6 @@ local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 local Lighting = game:GetService("Lighting")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local LocalPlayer = Players.LocalPlayer
 
@@ -41,10 +39,9 @@ local Window = Rayfield:CreateWindow({
 -------------------------------------------------
 local MainTab = Window:CreateTab("Main", 4483362458)
 local PlayerTab = Window:CreateTab("Player", 4483362458)
-local SkinsTab = Window:CreateTab("Skins Limitadas", 4483362458)  -- Nuevo tab al lado de Player
 
 -------------------------------------------------
--- STATES (originales)
+-- STATES
 -------------------------------------------------
 local tpSafeOn = false
 local speedOn = false
@@ -253,91 +250,3 @@ LocalPlayer:GetPropertyChangedSignal("Team"):Connect(function()
 end)
 
 setMidDay()
-
--------------------------------------------------
--- SKINS LIMITADAS - SECCIÓN NUEVA
--------------------------------------------------
-local buyRemote = ReplicatedStorage:WaitForChild("eventFolders"):WaitForChild("store"):WaitForChild("buyItem")
-local changeRemote = ReplicatedStorage:WaitForChild("eventFolders"):WaitForChild("store"):WaitForChild("changeSkin")
-
-local Leaderstats = LocalPlayer:WaitForChild("leaderstats")
-local Quidz = Leaderstats:WaitForChild("Quidz")
-
--- Lista de skins limitadas/viejas (IDs reales de wikis/scripts)
-local LimitedSkins = {
-	{name = "Ghost Bart", id = "Ghost", price = 555, team = "Bart"},
-	{name = "Witch Bart", id = "Witch", price = 350, team = "Bart"},
-	{name = "Jacko Bart", id = "Jacko", price = 400, team = "Bart"},  -- Halloween old
-	{name = "Santa Bart", id = "Santa", price = 375, team = "Bart"},
-	{name = "Frozen Bart", id = "Frozen", price = 500, team = "Bart"},
-	{name = "Beauty", id = "Beauty", price = 0, team = "Bart"},  -- Old special
-	{name = "CPTDev Bart", id = "CPT", price = 999999, team = "Bart"},  -- Exclusive pero exploiteable
-	{name = "1M VISITS Bart", id = "1M", price = 1000000, team = "Bart"},
-	{name = "700K Visits Bart", id = "700K", price = 700000, team = "Bart"},
-}
-
--- Función para comprar/equipar skin
-local function TryBuyAndEquip(skin)
-	if LocalPlayer.Team.Name ~= skin.team then
-		Rayfield:Notify({
-			Title = "Error",
-			Content = "Debes estar en equipo " .. skin.team .. " para esta skin.",
-			Duration = 4
-		})
-		return
-	end
-	
-	local currentQuidz = Quidz.Value
-	if currentQuidz >= skin.price then
-		-- Fire remotes reales
-		buyRemote:FireServer("Bart", skin.id)   -- Asumiendo Bart skins, ajusta si Homer
-		changeRemote:FireServer("Bart", skin.id)
-		
-		-- Simular gasto visual
-		Quidz.Value = currentQuidz - skin.price
-		
-		Rayfield:Notify({
-			Title = "¡Comprada!",
-			Content = skin.name .. " comprada y equipada por " .. skin.price .. " Quidz.",
-			Duration = 5
-		})
-	else
-		Rayfield:Notify({
-			Title = "Quidz Insuficientes",
-			Content = "Necesitas " .. skin.price .. " Quidz para " .. skin.name,
-			Duration = 4
-		})
-	end
-end
-
--- Crear toggles para cada skin limitada
-SkinsTab:CreateSection("Skins Limitadas Viejas (Toggle = Comprar/Equipar)")
-
-for _, skin in ipairs(LimitedSkins) do
-	SkinsTab:CreateToggle({
-		Name = skin.name .. " (" .. skin.price .. " Quidz)",
-		CurrentValue = false,
-		Flag = "Skin_" .. skin.id,
-		Callback = function(Value)
-			if Value then
-				TryBuyAndEquip(skin)
-				-- Toggle off auto después de intentar (no es equip permanente)
-				task.delay(0.5, function()
-					Rayfield.Flags["Skin_" .. skin.id].CurrentValue = false
-				end)
-			end
-		end,
-	})
-end
-
-SkinsTab:CreateSection("Info")
-SkinsTab:CreateParagraph({
-	Title = "Cómo usar",
-	Content = "Activa el toggle → intenta comprar y equipar la skin si tienes Quidz. Funciona con remotes reales. Rejoin si no ves el cambio. Solo Bart skins por ahora (agrega Homer si quieres)."
-})
-
-Rayfield:Notify({
-	Title = "Listo bro!",
-	Content = "Tab 'Skins Limitadas' agregado con toggles para viejas limitadas. ¡Prueba Ghost Bart y Beauty primero!",
-	Duration = 6
-})
