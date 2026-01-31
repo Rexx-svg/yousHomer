@@ -1,95 +1,63 @@
---// HAROLD TOP 😹
---// UI + 5 BOTONES (TP SAFE, TP LOBBY, SPEED, WALL HOP, ESP)
---// KEYBIND: Presiona K para abrir/cerrar el menú
+-- 😹 HAROLD TOP - RAYFIELD EDITION (TP SAFE como TOGGLE)
+-- Main:
+--   • TP SAFE (Toggle)
+--   • TP LOBBY (Button)
+--   • ESP (Toggle)
+-- Player:
+--   • Speed (Toggle)
+--   • Wall Hop (Toggle)
+-- Skins Limitadas: toggles para comprar/equipar viejas limitadas (Ghost, Witch, Beauty, CPTDev, etc.)
 
+-- Rayfield Loader
+local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
+
+-- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 local Lighting = game:GetService("Lighting")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
 local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
 -------------------------------------------------
--- GUI BASE
+-- WINDOW
 -------------------------------------------------
-local gui = Instance.new("ScreenGui", PlayerGui)
-gui.Name = "HAROLD_TOP"
-gui.ResetOnSpawn = false
-
-local main = Instance.new("Frame", gui)
-main.Size = UDim2.new(0,210,0,260)
-main.Position = UDim2.new(0.5,-105,0.5,-130)
-main.BackgroundColor3 = Color3.fromRGB(18,18,18)
-main.BorderSizePixel = 0
-main.Active = true
-main.Draggable = true
-Instance.new("UICorner", main).CornerRadius = UDim.new(0,14)
-
--- Minimizador
-local minimize = Instance.new("TextButton", main)
-minimize.Size = UDim2.new(0,30,0,30)
-minimize.Position = UDim2.new(1,-35,0,2)
-minimize.BackgroundColor3 = Color3.fromRGB(0,0,0)
-minimize.Text = "-"
-minimize.TextColor3 = Color3.new(1,1,1)
-minimize.Font = Enum.Font.GothamBold
-minimize.TextSize = 14
-Instance.new("UICorner", minimize).CornerRadius = UDim.new(0,8)
-
-local title = Instance.new("TextLabel", main)
-title.Size = UDim2.new(1,0,0,35)
-title.BackgroundTransparency = 1
-title.Text = "😹 HAROLD TOP"
-title.Font = Enum.Font.GothamBold
-title.TextSize = 14
-title.TextColor3 = Color3.fromRGB(255,80,80)
+local Window = Rayfield:CreateWindow({
+	Name = "😹 HAROLD TOP",
+	LoadingTitle = "HAROLD TOP",
+	LoadingSubtitle = "Rayfield Edition",
+	ConfigurationSaving = {
+		Enabled = true,
+		FolderName = "HaroldTop",
+		FileName = "Config"
+	},
+	KeySystem = false
+})
 
 -------------------------------------------------
--- CLICK SOUND
+-- TABS
 -------------------------------------------------
-local click = Instance.new("Sound", gui)
-click.SoundId = "rbxassetid://12221967"
-click.Volume = 1
-local function sound() click:Play() end
+local MainTab = Window:CreateTab("Main", 4483362458)
+local PlayerTab = Window:CreateTab("Player", 4483362458)
+local SkinsTab = Window:CreateTab("Skins Limitadas", 4483362458)  -- Nuevo tab al lado de Player
 
 -------------------------------------------------
--- BUTTON MAKER
+-- STATES (originales)
 -------------------------------------------------
-local function button(txt,y)
-	local b = Instance.new("TextButton", main)
-	b.Size = UDim2.new(1,-20,0,32)
-	b.Position = UDim2.new(0,10,0,y)
-	b.BackgroundColor3 = Color3.fromRGB(40,0,0)
-	b.Text = txt
-	b.TextColor3 = Color3.new(1,1,1)
-	b.Font = Enum.Font.GothamBold
-	b.TextSize = 12
-	b.BorderSizePixel = 0
-	Instance.new("UICorner", b).CornerRadius = UDim.new(0,10)
-	return b
-end
+local tpSafeOn = false
+local speedOn = false
+local wallHopOn = false
+local espOn = false
 
--------------------------------------------------
--- BOTONES
--------------------------------------------------
-local TPSafeBtn = button("TP SAFE",45)
-local TPLobbyBtn = button("TP LOBBY",85)
-local SpeedBtn   = button("SPEED [OFF]",125)
-local WallHopBtn = button("WALL HOP [OFF]",165)
-local ESPBtn     = button("ESP [OFF]",205)
-
--------------------------------------------------
--- STATES
--------------------------------------------------
-local tpSafeOn,tpOn,speedOn,wallHopOn,espOn = false,false,false,false,false
 local normalSpeed = 16
 local lobbyPos = nil
 local lastPos = nil
 local espObjects = {}
 
 -------------------------------------------------
--- GUARDAR LOBBY
+-- GUARDAR POSICIÓN LOBBY
 -------------------------------------------------
 LocalPlayer.CharacterAdded:Connect(function(char)
 	task.wait(1)
@@ -100,73 +68,80 @@ LocalPlayer.CharacterAdded:Connect(function(char)
 end)
 
 -------------------------------------------------
--- TP SAFE (TEXTO BACK)
+-- TP SAFE (TOGGLE)
 -------------------------------------------------
-TPSafeBtn.MouseButton1Click:Connect(function()
-	sound()
-	tpSafeOn = not tpSafeOn
+MainTab:CreateToggle({
+	Name = "TP SAFE",
+	CurrentValue = false,
+	Flag = "TPSafeToggle",
+	Callback = function(Value)
+		tpSafeOn = Value
 
-	local char = LocalPlayer.Character
-	if not char then return end
-	local hrp = char:FindFirstChild("HumanoidRootPart")
-	if not hrp then return end
+		local char = LocalPlayer.Character
+		if not char then return end
+		local hrp = char:FindFirstChild("HumanoidRootPart")
+		if not hrp then return end
 
-	if tpSafeOn then
-		TPSafeBtn.Text = "BACK"
-		if LocalPlayer.Team and LocalPlayer.Team.Name == "Bart" then
-			lastPos = hrp.CFrame
-			if lobbyPos then
-				hrp.CFrame = lobbyPos
+		if tpSafeOn then
+			-- Activado: guardar posición y mandar al lobby
+			if LocalPlayer.Team and LocalPlayer.Team.Name == "Bart" then
+				lastPos = hrp.CFrame
+				if lobbyPos then
+					hrp.CFrame = lobbyPos
+				end
+			end
+		else
+			-- Desactivado: volver a la posición anterior
+			if lastPos then
+				hrp.CFrame = lastPos
+				lastPos = nil
 			end
 		end
-	else
-		TPSafeBtn.Text = "TP SAFE"
-		if lastPos then
-			hrp.CFrame = lastPos
-			lastPos = nil
+	end,
+})
+
+-------------------------------------------------
+-- TP LOBBY (BUTTON)
+-------------------------------------------------
+MainTab:CreateButton({
+	Name = "TP LOBBY",
+	Callback = function()
+		if lobbyPos and LocalPlayer.Character then
+			LocalPlayer.Character.HumanoidRootPart.CFrame = lobbyPos
 		end
-	end
-end)
+	end,
+})
 
 -------------------------------------------------
--- TP LOBBY (TELEPORTING...)
+-- SPEED (TOGGLE)
 -------------------------------------------------
-TPLobbyBtn.MouseButton1Click:Connect(function()
-	sound()
-	TPLobbyBtn.Text = "TELEPORTING..."
-
-	if lobbyPos and LocalPlayer.Character then
-		task.wait(0.2)
-		LocalPlayer.Character.HumanoidRootPart.CFrame = lobbyPos
-	end
-
-	task.wait(0.3)
-	TPLobbyBtn.Text = "TP LOBBY"
-end)
-
--------------------------------------------------
--- SPEED
--------------------------------------------------
-SpeedBtn.MouseButton1Click:Connect(function()
-	sound()
-	local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-	if not hum then return end
-	speedOn = not speedOn
-	hum.WalkSpeed = speedOn and 38.5 or normalSpeed
-	SpeedBtn.Text = "SPEED ["..(speedOn and "ON" or "OFF").."]"
-end)
+PlayerTab:CreateToggle({
+	Name = "Speed",
+	CurrentValue = false,
+	Flag = "SpeedToggle",
+	Callback = function(Value)
+		speedOn = Value
+		local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+		if hum then
+			hum.WalkSpeed = speedOn and 38.5 or normalSpeed
+		end
+	end,
+})
 
 -------------------------------------------------
--- WALL HOP
+-- WALL HOP (TOGGLE)
 -------------------------------------------------
 local jumpForce = 50
 local clampFallSpeed = 80
 
-WallHopBtn.MouseButton1Click:Connect(function()
-	sound()
-	wallHopOn = not wallHopOn
-	WallHopBtn.Text = "WALL HOP ["..(wallHopOn and "ON" or "OFF").."]"
-end)
+PlayerTab:CreateToggle({
+	Name = "Wall Hop",
+	CurrentValue = false,
+	Flag = "WallHopToggle",
+	Callback = function(Value)
+		wallHopOn = Value
+	end,
+})
 
 RunService.Heartbeat:Connect(function()
 	if not wallHopOn then return end
@@ -174,7 +149,7 @@ RunService.Heartbeat:Connect(function()
 	if not char then return end
 	local hrp = char:FindFirstChild("HumanoidRootPart")
 	if hrp and hrp.Velocity.Y < -clampFallSpeed then
-		hrp.Velocity = Vector3.new(hrp.Velocity.X,-clampFallSpeed,hrp.Velocity.Z)
+		hrp.Velocity = Vector3.new(hrp.Velocity.X, -clampFallSpeed, hrp.Velocity.Z)
 	end
 end)
 
@@ -182,7 +157,7 @@ UIS.JumpRequest:Connect(function()
 	if wallHopOn then
 		local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
 		if hrp then
-			hrp.Velocity = Vector3.new(hrp.Velocity.X,jumpForce,hrp.Velocity.Z)
+			hrp.Velocity = Vector3.new(hrp.Velocity.X, jumpForce, hrp.Velocity.Z)
 		end
 	end
 end)
@@ -191,106 +166,74 @@ end)
 -- ESP
 -------------------------------------------------
 local function validTeam(team)
-	return team and (team.Name=="Bart" or team.Name=="Homer")
+	return team and (team.Name == "Bart" or team.Name == "Homer")
 end
 
 local function clearESP()
-	for _,b in pairs(espObjects) do b:Destroy() end
+	for _, b in pairs(espObjects) do
+		b:Destroy()
+	end
 	espObjects = {}
 end
 
 local function addESP(plr)
-	if plr==LocalPlayer then return end
+	if plr == LocalPlayer then return end
 	if not validTeam(plr.Team) then return end
 	if not plr.Character then return end
 
 	local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
 	if not hrp then return end
 
-	local color = plr.Team.Name=="Homer"
-		and Color3.fromRGB(255,0,0)
-		or Color3.fromRGB(0,0,255)
+	local color = plr.Team.Name == "Homer"
+		and Color3.fromRGB(255, 0, 0)
+		or Color3.fromRGB(0, 0, 255)
 
 	local box = Instance.new("BoxHandleAdornment")
 	box.Adornee = hrp
-	box.Size = Vector3.new(2.6,4.8,2.6)
+	box.Size = Vector3.new(2.6, 4.8, 2.6)
 	box.AlwaysOnTop = true
 	box.Transparency = 0.4
 	box.Color3 = color
 	box.ZIndex = 10
 	box.Parent = Workspace
 
-	espObjects[plr]=box
+	espObjects[plr] = box
 end
 
 local function updateESP()
 	if not espOn then return end
 
-	if not validTeam(LocalPlayer.Team) then
-		clearESP()
-		return
-	end
-
-	for plr,box in pairs(espObjects) do
+	for plr, box in pairs(espObjects) do
 		if not validTeam(plr.Team) or not plr.Character then
 			box:Destroy()
-			espObjects[plr]=nil
+			espObjects[plr] = nil
 		end
 	end
 
-	for _,plr in pairs(Players:GetPlayers()) do
+	for _, plr in pairs(Players:GetPlayers()) do
 		if validTeam(plr.Team) and not espObjects[plr] then
 			addESP(plr)
 		end
 	end
 end
 
-ESPBtn.MouseButton1Click:Connect(function()
-	sound()
-	espOn = not espOn
-	ESPBtn.Text = "ESP ["..(espOn and "ON" or "OFF").."]"
-	if not espOn then clearESP() end
-end)
+MainTab:CreateToggle({
+	Name = "ESP",
+	CurrentValue = false,
+	Flag = "ESPToggle",
+	Callback = function(Value)
+		espOn = Value
+		if not espOn then
+			clearESP()
+		end
+	end,
+})
 
 RunService.Heartbeat:Connect(updateESP)
-Players.PlayerAdded:Connect(updateESP)
 Players.PlayerRemoving:Connect(function(p)
-	if espObjects[p] then espObjects[p]:Destroy() espObjects[p]=nil end
-end)
-
--------------------------------------------------
--- MINIMIZAR / MAXIMIZAR (BOTÓN Y TECLA K)
--------------------------------------------------
-local open = true
-
-local function toggleMenu()
-	open = not open
-	if open then
-		minimize.Text = "-"
-		for _,b in pairs({TPSafeBtn,TPLobbyBtn,SpeedBtn,WallHopBtn,ESPBtn}) do
-			b.Visible = true
-		end
-		main:TweenSize(UDim2.new(0,210,0,260),"Out","Quad",0.3,true)
-	else
-		minimize.Text = "+"
-		for _,b in pairs({TPSafeBtn,TPLobbyBtn,SpeedBtn,WallHopBtn,ESPBtn}) do
-			b.Visible = false
-		end
-		main:TweenSize(UDim2.new(0,210,0,40),"Out","Quad",0.3,true)
-	end
-end
-
-minimize.MouseButton1Click:Connect(function()
-	sound()
-	toggleMenu()
-end)
-
--- KEYBIND K
-UIS.InputBegan:Connect(function(input, gpe)
-	if gpe then return end
-	if input.KeyCode == Enum.KeyCode.K then
-		sound()
-		toggleMenu()
+	if espObjects[p] then
+		espObjects[p]:Destroy()
+		espObjects[p] = nil
 	end
 end)
 
@@ -310,3 +253,91 @@ LocalPlayer:GetPropertyChangedSignal("Team"):Connect(function()
 end)
 
 setMidDay()
+
+-------------------------------------------------
+-- SKINS LIMITADAS - SECCIÓN NUEVA
+-------------------------------------------------
+local buyRemote = ReplicatedStorage:WaitForChild("eventFolders"):WaitForChild("store"):WaitForChild("buyItem")
+local changeRemote = ReplicatedStorage:WaitForChild("eventFolders"):WaitForChild("store"):WaitForChild("changeSkin")
+
+local Leaderstats = LocalPlayer:WaitForChild("leaderstats")
+local Quidz = Leaderstats:WaitForChild("Quidz")
+
+-- Lista de skins limitadas/viejas (IDs reales de wikis/scripts)
+local LimitedSkins = {
+	{name = "Ghost Bart", id = "Ghost", price = 555, team = "Bart"},
+	{name = "Witch Bart", id = "Witch", price = 350, team = "Bart"},
+	{name = "Jacko Bart", id = "Jacko", price = 400, team = "Bart"},  -- Halloween old
+	{name = "Santa Bart", id = "Santa", price = 375, team = "Bart"},
+	{name = "Frozen Bart", id = "Frozen", price = 500, team = "Bart"},
+	{name = "Beauty", id = "Beauty", price = 0, team = "Bart"},  -- Old special
+	{name = "CPTDev Bart", id = "CPT", price = 999999, team = "Bart"},  -- Exclusive pero exploiteable
+	{name = "1M VISITS Bart", id = "1M", price = 1000000, team = "Bart"},
+	{name = "700K Visits Bart", id = "700K", price = 700000, team = "Bart"},
+}
+
+-- Función para comprar/equipar skin
+local function TryBuyAndEquip(skin)
+	if LocalPlayer.Team.Name ~= skin.team then
+		Rayfield:Notify({
+			Title = "Error",
+			Content = "Debes estar en equipo " .. skin.team .. " para esta skin.",
+			Duration = 4
+		})
+		return
+	end
+	
+	local currentQuidz = Quidz.Value
+	if currentQuidz >= skin.price then
+		-- Fire remotes reales
+		buyRemote:FireServer("Bart", skin.id)   -- Asumiendo Bart skins, ajusta si Homer
+		changeRemote:FireServer("Bart", skin.id)
+		
+		-- Simular gasto visual
+		Quidz.Value = currentQuidz - skin.price
+		
+		Rayfield:Notify({
+			Title = "¡Comprada!",
+			Content = skin.name .. " comprada y equipada por " .. skin.price .. " Quidz.",
+			Duration = 5
+		})
+	else
+		Rayfield:Notify({
+			Title = "Quidz Insuficientes",
+			Content = "Necesitas " .. skin.price .. " Quidz para " .. skin.name,
+			Duration = 4
+		})
+	end
+end
+
+-- Crear toggles para cada skin limitada
+SkinsTab:CreateSection("Skins Limitadas Viejas (Toggle = Comprar/Equipar)")
+
+for _, skin in ipairs(LimitedSkins) do
+	SkinsTab:CreateToggle({
+		Name = skin.name .. " (" .. skin.price .. " Quidz)",
+		CurrentValue = false,
+		Flag = "Skin_" .. skin.id,
+		Callback = function(Value)
+			if Value then
+				TryBuyAndEquip(skin)
+				-- Toggle off auto después de intentar (no es equip permanente)
+				task.delay(0.5, function()
+					Rayfield.Flags["Skin_" .. skin.id].CurrentValue = false
+				end)
+			end
+		end,
+	})
+end
+
+SkinsTab:CreateSection("Info")
+SkinsTab:CreateParagraph({
+	Title = "Cómo usar",
+	Content = "Activa el toggle → intenta comprar y equipar la skin si tienes Quidz. Funciona con remotes reales. Rejoin si no ves el cambio. Solo Bart skins por ahora (agrega Homer si quieres)."
+})
+
+Rayfield:Notify({
+	Title = "Listo bro!",
+	Content = "Tab 'Skins Limitadas' agregado con toggles para viejas limitadas. ¡Prueba Ghost Bart y Beauty primero!",
+	Duration = 6
+})
